@@ -1,0 +1,34 @@
+# <type>: <subject>
+# |<----  Using a maximum of 50 characters  ---->|
+# 
+# Example commit messages:
+# feat: Add user authentication
+# fix: Resolve null pointer in TaskController
+# docs: Update API documentation
+# test: Add integration tests for task creation
+# chore: Update gradle dependencies
+# refactor: Improve task scheduling logic
+# style: Format code according to guidelines
+# perf: Optimize database queries
+# build: Update gradle configuration
+# ci: Add GitHub Actions workflow
+#
+# Type can be:
+#   feat     (new feature)
+#   fix      (bug fix)
+#   docs     (documentation changes)
+#   style    (formatting, missing semicolons, etc; no code change)
+#   refactor (refactoring production code)
+#   test     (adding tests, refactoring tests; no production code change)
+#   chore    (updating build tasks, package manager configs, etc)
+#   perf     (performance improvements)
+#   build    (changes to build system)
+#   ci       (changes to CI configuration)
+#
+# Subject should:
+#   * use imperative, present tense: "change" not "changed" nor "changes"
+#   * start with capital letter
+#   * not end with a period
+#
+# Explain what and why below (if needed), not how
+# |<----   Try to limit each line to a maximum of 72 characters   ---->|

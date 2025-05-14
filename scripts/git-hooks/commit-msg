@@ -1,0 +1,46 @@
+#!/bin/sh
+
+commit_msg_file="$1"
+commit_msg=$(cat "$commit_msg_file")
+
+# Define the pattern for conventional commits
+pattern="^(feat|fix|docs|style|refactor|test|chore|perf|build|ci):.+$"
+
+# Check if first line matches the pattern
+first_line=$(head -n 1 "$commit_msg_file")
+
+if ! echo "$first_line" | grep -qE "$pattern"; then
+    echo "ERROR: Invalid commit message format."
+    echo "Commit message must start with one of: feat:, fix:, docs:, style:, refactor:, test:, chore:, perf:, build:, ci:"
+    echo "Example: feat: Add user authentication"
+    echo ""
+    echo "Your commit message: $first_line"
+    exit 1
+fi
+
+# Check if first character after type is uppercase
+type_and_message=$(echo "$first_line" | cut -d ':' -f 2-)
+first_char=$(echo "$type_and_message" | cut -c 2)  # cut -c 2 to skip the space
+if ! echo "$first_char" | grep -q '^[A-Z]'; then
+    echo "ERROR: Message must start with a capital letter"
+    echo "Your commit message: $first_line"
+    exit 1
+fi
+
+# Check line length (50 chars for first line, 72 for others)
+if [ ${#first_line} -gt 50 ]; then
+    echo "ERROR: First line must not exceed 50 characters"
+    echo "Your commit message length: ${#first_line}"
+    exit 1
+fi
+
+while IFS= read -r line; do
+    if [ ${#line} -gt 72 ] && [ -n "$line" ] && ! echo "$line" | grep -q "^#"; then
+        echo "ERROR: Body lines must not exceed 72 characters"
+        echo "Line: $line"
+        echo "Length: ${#line}"
+        exit 1
+    fi
+done < "$commit_msg_file"
+
+exit 0

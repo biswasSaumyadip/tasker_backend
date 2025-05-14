@@ -1,0 +1,181 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'checkstyle'
+    id 'com.diffplug.spotless' version '6.25.0'
+    id 'jacoco'
+    id 'org.sonarqube' version '4.4.1.3373'
+    id 'com.github.ben-manes.versions' version '0.50.0'
+}
+
+group = 'com.event'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot starters
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // Database
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // Utilities
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // API Documentation
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.4.0'
+
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.mockito:mockito-inline:5.2.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+// Code coverage configuration
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+// Code style configuration
+checkstyle {
+    toolVersion = "10.3.3"
+    configFile = file("${rootDir}/config/checkstyle/google_checks.xml")
+}
+
+// Code formatting configuration
+spotless {
+    java {
+        // Use the Google Java format
+        googleJavaFormat()
+
+        // Remove unused imports
+        removeUnusedImports()
+
+        // Sort imports
+        importOrder('java', 'javax', 'org', 'com', '')
+
+        // Custom rules
+        custom 'Lambda fix', { it.replace('} )', '})').replace('} ,', '},') }
+    }
+    format 'misc', {
+        target '**/*.gradle', '**/*.md', '**/*.yml', '**/*.yaml'
+        trimTrailingWhitespace()
+        indentWithSpaces(2)
+        endWithNewline()
+    }
+}
+
+
+// Task to apply formatting and check code quality in one go
+tasks.register('verifyAndFormat') {
+    group = 'verification'
+    description = 'Apply formatting and run code quality checks'
+    dependsOn 'spotlessApply', 'checkstyleMain'
+}
+
+// Task to analyze code quality (includes all verification tasks)
+tasks.register('qualityCheck') {
+    group = 'verification'
+    description = 'Run all code quality checks'
+    dependsOn 'test', 'checkstyleMain', 'spotlessCheck', 'jacocoTestReport'
+}
+
+// Add a task to check for dependency updates
+tasks.named('dependencyUpdates').configure {
+    checkForGradleUpdate = true
+    outputFormatter = "html"
+    outputDir = "build/dependency-updates"
+    reportfileName = "report"
+}
+
+// Task to set up git hooks cross-platform
+task setupGitHooks {
+    group = 'Setup'
+    description = 'Sets up git hooks for all platforms'
+
+    doLast {
+        def isWindows = org.gradle.internal.os.OperatingSystem.current().windows
+        def hookDir = new File(".git/hooks")
+        hookDir.mkdirs()
+
+        // Copy hooks
+        copy {
+            from 'scripts/git-hooks'
+            into '.git/hooks'
+            include 'pre-commit'
+            include 'commit-msg'
+        }
+
+        // Make hooks executable
+        if (!isWindows) {
+            exec {
+                commandLine 'chmod', '+x', '.git/hooks/pre-commit', '.git/hooks/commit-msg'
+            }
+        }
+
+        // Special handling for Windows
+        if (isWindows) {
+            copy {
+                from 'scripts/git-hooks'
+                into '.git/hooks'
+                include 'pre-commit.bat'
+            }
+            exec {
+                commandLine 'cmd', '/c', 'icacls', '.git/hooks/pre-commit.bat', '/grant', 'Everyone:RX'
+            }
+            exec {
+                commandLine 'cmd', '/c', 'icacls', '.git/hooks/pre-commit', '/grant', 'Everyone:RX'
+            }
+            exec {
+                commandLine 'cmd', '/c', 'icacls', '.git/hooks/commit-msg', '/grant', 'Everyone:RX'
+            }
+        }
+    }
+}
+
+// Run setupGitHooks after project evaluation
+afterEvaluate {
+    tasks.named('processResources').configure {
+        dependsOn setupGitHooks
+    }
+}
