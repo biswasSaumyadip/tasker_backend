@@ -3,9 +3,6 @@
 
 echo "Running pre-commit checks..."
 
-# Stash any changes not being committed
-git stash -q --keep-index
-
 # Format code and run all checks in parallel
 echo "Running all checks..."
 ./gradlew.bat spotlessApply checkstyleMain checkstyleTest test jacocoTestCoverageVerification --parallel --daemon
@@ -24,7 +21,6 @@ FORMAT_RESULT=$?
 
 if [ $FORMAT_RESULT -ne 0 ]; then
     echo "Failed to format code. Check for errors in your code."
-    git stash pop -q
     exit 1
 fi
 
@@ -35,9 +31,6 @@ git diff --quiet || git add -u
 echo "Running Checkstyle..."
 ./gradlew.bat checkstyleMain
 CHECKSTYLE_RESULT=$?
-
-# Pop the stash
-git stash pop -q
 
 # Return the status
 if [ $CHECKSTYLE_RESULT -ne 0 ]; then
