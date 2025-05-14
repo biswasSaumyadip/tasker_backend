@@ -9,6 +9,15 @@ plugins {
     id 'com.github.ben-manes.versions' version '0.50.0'
 }
 
+sonarqube {
+    properties {
+        property 'sonar.gradle.skipCompile', 'true'
+    }
+}
+
+// Also set the property at the project level to ensure it's picked up
+project.ext.set('sonar.gradle.skipCompile', 'true')
+
 group = 'com.event'
 version = '0.0.1-SNAPSHOT'
 
