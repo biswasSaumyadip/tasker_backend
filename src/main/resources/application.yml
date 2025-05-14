@@ -48,4 +48,4 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: method
-  packages-to-scan: com.event.controller
+  packages-to-scan: com.event.tasker.controller

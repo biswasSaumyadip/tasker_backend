@@ -15,14 +15,20 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TaskDaoImpl implements TaskDao {
 
-  private NamedParameterJdbcTemplate jdbcTemplate;
+  private final NamedParameterJdbcTemplate jdbcTemplate;
 
   public ArrayList<Task> getTasks() {
     String sql =
-        "\tSELECT t.*, GROUP_CONCAT(tt.tag) AS tags\n"
-            + "\tFROM TASKS t\n"
-            + "\tLEFT JOIN TASK_TAGS tt ON t.id = tt.task_id\n"
-            + "\tGROUP BY t.id";
+        "SELECT t.*,\n"
+            + "\t\t t.assigned_to        AS assignedTo,\n"
+            + "\t\t t.created_at         AS createdAt,\n"
+            + "\t\t t.due_date           AS dueDate,\n"
+            + "\t\t parent_id            AS parentID,\n"
+            + "\t\t GROUP_CONCAT(tt.tag) AS\n"
+            + "\t\t\t\t\t\t\t\t\t\t tags\n"
+            + "FROM tasks t\n"
+            + "\t\t LEFT JOIN task_tags tt ON t.id = tt.task_id\n"
+            + "GROUP BY t.id";
 
     return jdbcTemplate.query(
         sql,

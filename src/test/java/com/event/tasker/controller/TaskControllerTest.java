@@ -1,34 +1,74 @@
 package com.event.tasker.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.event.tasker.model.Task;
+import com.event.tasker.service.TaskService;
 
 @ExtendWith(MockitoExtension.class)
 class TaskControllerTest {
 
+  @Mock private TaskService taskService;
+
   @InjectMocks private TaskController taskController;
 
   @Test
-  void testGetTasks() {
+  void testGetTasks_Success() {
     // Given
-    // No setup needed for current implementation
+    ArrayList<Task> mockTasks = new ArrayList<>();
+    mockTasks.add(new Task());
+    when(taskService.getTasks()).thenReturn(mockTasks);
 
     // When
-    ArrayList<Task> tasks = taskController.getTasks();
+    ResponseEntity<ArrayList<Task>> response = taskController.getTasks();
 
     // Then
-    assertNull(tasks, "The current implementation always returns null");
+    assertEquals(HttpStatus.OK, response.getStatusCode(), "Should return OK status");
+    assertEquals(mockTasks, response.getBody(), "Should return tasks from service");
+  }
+
+  @Test
+  void testGetTasks_NullResponse() {
+    // Given
+    when(taskService.getTasks()).thenReturn(null);
+
+    // When
+    ResponseEntity<ArrayList<Task>> response = taskController.getTasks();
+
+    // Then
+    assertEquals(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        response.getStatusCode(),
+        "Should return INTERNAL_SERVER_ERROR when service returns null");
+  }
+
+  @Test
+  void testGetTasks_Exception() {
+    // Given
+    when(taskService.getTasks()).thenThrow(new RuntimeException("Test exception"));
+
+    // When
+    ResponseEntity<ArrayList<Task>> response = taskController.getTasks();
+
+    // Then
+    assertEquals(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        response.getStatusCode(),
+        "Should return INTERNAL_SERVER_ERROR when service throws exception");
   }
 
   @Test
@@ -38,9 +78,5 @@ class TaskControllerTest {
 
     // Then
     assertNotNull(mockMvc, "MockMvc should be initialized");
-    // Note: We can't test HTTP endpoints yet as they're not properly implemented
   }
-
-  // Note: More comprehensive tests should be added once the controller is properly implemented
-  // with proper request mappings and service integration
 }
