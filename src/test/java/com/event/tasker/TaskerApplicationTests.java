@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ConfigurableApplicationContext;
 
 @SpringBootTest
-@DisplayName("Unit Test: TaskerApplication")
+@DisplayName("Integration Test: TaskerApplication")
 class TaskerApplicationTests {
 
   @Test

@@ -39,15 +39,15 @@ class TaskDaoImplTest {
 
   private static final String EXPECTED_SQL =
       "SELECT t.*,\n"
-          + "\t\t t.assigned_to        AS assignedTo,\n"
-          + "\t\t t.created_at         AS createdAt,\n"
-          + "\t\t t.due_date           AS dueDate,\n"
-          + "\t\t parent_id            AS parentID,\n"
-          + "\t\t GROUP_CONCAT(tt.tag) AS\n"
-          + "\t\t\t\t\t\t\t\t\t\t tags\n"
+          + "       CONCAT(u.first_name, ' ', u.last_name) AS assignedTo,\n"
+          + "       t.created_at                           AS createdAt,\n"
+          + "       t.due_date                             AS dueDate,\n"
+          + "       parent_id                              AS parentID,\n"
+          + "       GROUP_CONCAT(tt.tag)                   AS tags\n"
           + "FROM tasks t\n"
-          + "\t\t LEFT JOIN task_tags tt ON t.id = tt.task_id\n"
-          + "GROUP BY t.id";
+          + "     LEFT JOIN task_tags tt ON t.id = tt.task_id\n"
+          + "     LEFT JOIN users u ON u.user_id = t.assigned_to\n"
+          + "GROUP BY t.id, u.first_name, u.last_name";
 
   @Mock private NamedParameterJdbcTemplate jdbcTemplate;
 
