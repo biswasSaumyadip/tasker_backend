@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Unit Test: Task")
 class TaskTest {
 
   @Test
@@ -62,6 +63,7 @@ class TaskTest {
   }
 
   @Test
+  @DisplayName("Testing getters and setters of Task class")
   void testGettersAndSetters() {
     // Given
     Task task = new Task();
@@ -102,6 +104,7 @@ class TaskTest {
   }
 
   @Test
+  @DisplayName("Testing equals and hashCode methods of Task class")
   void testEqualsAndHashCode() {
     // Given
     Instant now = Instant.now();
@@ -155,6 +158,7 @@ class TaskTest {
   }
 
   @Test
+  @DisplayName("Testing toString method of Task class")
   void testToString() {
     // Given
     Instant now = Instant.now();
@@ -187,6 +191,7 @@ class TaskTest {
   }
 
   @Test
+  @DisplayName("Testing all-args constructor of Task class")
   void testAllArgsConstructor() {
     // Given
     String id = "789";
@@ -228,6 +233,7 @@ class TaskTest {
   }
 
   @Test
+  @DisplayName("Testing no-args constructor of Task class")
   void testNoArgsConstructor() {
     // When
     Task task = new Task();

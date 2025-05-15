@@ -19,7 +19,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,59 +29,55 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.event.tasker.model.Task;
 import com.event.tasker.util.CSVToArrayConverter;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Unit Test: TaskDaoImpl")
 class TaskDaoImplTest {
+
+  private static final String EXPECTED_SQL =
+      "SELECT t.*,\n"
+          + "\t\t t.assigned_to        AS assignedTo,\n"
+          + "\t\t t.created_at         AS createdAt,\n"
+          + "\t\t t.due_date           AS dueDate,\n"
+          + "\t\t parent_id            AS parentID,\n"
+          + "\t\t GROUP_CONCAT(tt.tag) AS\n"
+          + "\t\t\t\t\t\t\t\t\t\t tags\n"
+          + "FROM tasks t\n"
+          + "\t\t LEFT JOIN task_tags tt ON t.id = tt.task_id\n"
+          + "GROUP BY t.id";
 
   @Mock private NamedParameterJdbcTemplate jdbcTemplate;
 
   @InjectMocks private TaskDaoImpl taskDao;
 
-  @BeforeEach
-  void setUp() {
-    ReflectionTestUtils.setField(taskDao, "jdbcTemplate", jdbcTemplate);
-  }
-
   @Test
-  void testGetTasks() throws SQLException {
+  @DisplayName("Get tasks returns multiple tasks successfully")
+  void testGetTasks_ReturnsMultipleTasks() throws SQLException {
     // Given
-    String expectedSql =
-        "\tSELECT t.*, GROUP_CONCAT(tt.tag) AS tags\n"
-            + "\tFROM TASKS t\n"
-            + "\tLEFT JOIN TASK_TAGS tt ON t.id = tt.task_id\n"
-            + "\tGROUP BY t.id";
-
     ResultSet mockResultSet = mock(ResultSet.class);
+    Instant now = Instant.now();
+    Timestamp timestamp = Timestamp.from(now);
 
-    // Mock result set behavior
-    when(mockResultSet.next()).thenReturn(true, true, false); // Two rows
+    // Mock result set behavior for two rows
+    when(mockResultSet.next()).thenReturn(true, true, false);
 
-    // First row
+    // Task 1 data
     when(mockResultSet.getString("id")).thenReturn("1", "2");
     when(mockResultSet.getString("title")).thenReturn("Task 1", "Task 2");
     when(mockResultSet.getString("description")).thenReturn("Description 1", "Description 2");
     when(mockResultSet.getBoolean("completed")).thenReturn(false, true);
-
-    Instant now = Instant.now();
-    Timestamp timestamp = Timestamp.from(now);
     when(mockResultSet.getTimestamp("createdAt")).thenReturn(timestamp, timestamp);
     when(mockResultSet.getTimestamp("dueDate")).thenReturn(timestamp, timestamp);
-
     when(mockResultSet.getString("assignedTo")).thenReturn("user1", "user2");
     when(mockResultSet.getString("parentId")).thenReturn(null, "1");
     when(mockResultSet.getString("tags")).thenReturn("tag1,tag2", "tag3");
+    when(mockResultSet.getString("priority")).thenReturn("HIGH", "LOW");
 
     // Mock jdbcTemplate behavior
-    when(jdbcTemplate.query(eq(expectedSql), any(ResultSetExtractor.class)))
-        .thenAnswer(
-            invocation -> {
-              ResultSetExtractor<ArrayList<Task>> extractor = invocation.getArgument(1);
-              return extractor.extractData(mockResultSet);
-            });
+    mockJdbcTemplateQuery(mockResultSet);
 
     // Mock CSVToArrayConverter
     try (MockedStatic<CSVToArrayConverter> mockedConverter =
@@ -97,93 +93,90 @@ class TaskDaoImplTest {
       ArrayList<Task> tasks = taskDao.getTasks();
 
       // Then
-      assertNotNull(tasks);
-      assertEquals(2, tasks.size());
+      assertNotNull(tasks, "Tasks list should not be null");
+      assertEquals(2, tasks.size(), "Should return 2 tasks");
 
       // Verify first task
       Task task1 = tasks.get(0);
-      assertEquals("1", task1.getId());
-      assertEquals("Task 1", task1.getTitle());
-      assertEquals("Description 1", task1.getDescription());
-      assertFalse(task1.isCompleted());
-      assertEquals(now, task1.getCreatedAt());
-      assertEquals(now, task1.getDueDate());
-      assertEquals("user1", task1.getAssignedTo());
-      assertNull(task1.getParentId());
-      assertEquals(Arrays.asList("tag1", "tag2"), task1.getTags());
+      assertEquals("1", task1.getId(), "First task ID should match");
+      assertEquals("Task 1", task1.getTitle(), "First task title should match");
+      assertEquals("Description 1", task1.getDescription(), "First task description should match");
+      assertFalse(task1.isCompleted(), "First task should not be completed");
+      assertEquals(now, task1.getCreatedAt(), "First task creation time should match");
+      assertEquals(now, task1.getDueDate(), "First task due date should match");
+      assertEquals("user1", task1.getAssignedTo(), "First task assignee should match");
+      assertNull(task1.getParentId(), "First task should not have a parent");
+      assertEquals(Task.Priority.HIGH, task1.getPriority(), "First task priority should be HIGH");
+      assertEquals(Arrays.asList("tag1", "tag2"), task1.getTags(), "First task tags should match");
 
       // Verify second task
       Task task2 = tasks.get(1);
-      assertEquals("2", task2.getId());
-      assertEquals("Task 2", task2.getTitle());
-      assertEquals("Description 2", task2.getDescription());
-      assertTrue(task2.isCompleted());
-      assertEquals(now, task2.getCreatedAt());
-      assertEquals(now, task2.getDueDate());
-      assertEquals("user2", task2.getAssignedTo());
-      assertEquals("1", task2.getParentId());
-      assertEquals(Arrays.asList("tag3"), task2.getTags());
+      assertEquals("2", task2.getId(), "Second task ID should match");
+      assertEquals("Task 2", task2.getTitle(), "Second task title should match");
+      assertEquals("Description 2", task2.getDescription(), "Second task description should match");
+      assertTrue(task2.isCompleted(), "Second task should be completed");
+      assertEquals(now, task2.getCreatedAt(), "Second task creation time should match");
+      assertEquals(now, task2.getDueDate(), "Second task due date should match");
+      assertEquals("user2", task2.getAssignedTo(), "Second task assignee should match");
+      assertEquals("1", task2.getParentId(), "Second task should have parent ID 1");
+      assertEquals(Task.Priority.LOW, task2.getPriority(), "Second task priority should be LOW");
+      assertEquals(Arrays.asList("tag3"), task2.getTags(), "Second task tags should match");
 
       // Verify jdbcTemplate was called with correct SQL
-      verify(jdbcTemplate).query(eq(expectedSql), any(ResultSetExtractor.class));
+      verify(jdbcTemplate).query(eq(EXPECTED_SQL), any(ResultSetExtractor.class));
     }
   }
 
   @Test
-  void testGetTasksWithNoResults() throws SQLException {
+  @DisplayName("Get tasks returns empty list when no tasks exist")
+  void testGetTasks_ReturnsEmptyList() throws SQLException {
     // Given
-    String expectedSql =
-        "\tSELECT t.*, GROUP_CONCAT(tt.tag) AS tags\n"
-            + "\tFROM TASKS t\n"
-            + "\tLEFT JOIN TASK_TAGS tt ON t.id = tt.task_id\n"
-            + "\tGROUP BY t.id";
-
     ResultSet mockResultSet = mock(ResultSet.class);
     when(mockResultSet.next()).thenReturn(false); // No rows
 
     // Mock jdbcTemplate behavior
-    when(jdbcTemplate.query(eq(expectedSql), any(ResultSetExtractor.class)))
-        .thenAnswer(
-            invocation -> {
-              ResultSetExtractor<ArrayList<Task>> extractor = invocation.getArgument(1);
-              return extractor.extractData(mockResultSet);
-            });
+    mockJdbcTemplateQuery(mockResultSet);
 
     // When
     ArrayList<Task> tasks = taskDao.getTasks();
 
     // Then
-    assertNotNull(tasks);
-    assertTrue(tasks.isEmpty());
+    assertNotNull(tasks, "Tasks list should not be null even when empty");
+    assertTrue(tasks.isEmpty(), "Tasks list should be empty");
 
     // Verify jdbcTemplate was called with correct SQL
-    verify(jdbcTemplate).query(eq(expectedSql), any(ResultSetExtractor.class));
+    verify(jdbcTemplate).query(eq(EXPECTED_SQL), any(ResultSetExtractor.class));
   }
 
   @Test
-  void testGetTasksWithSQLException() throws SQLException {
+  @DisplayName("Get tasks throws SQLException when database error occurs")
+  void testGetTasks_ThrowsSQLException() throws SQLException {
     // Given
-    String expectedSql =
-        "\tSELECT t.*, GROUP_CONCAT(tt.tag) AS tags\n"
-            + "\tFROM TASKS t\n"
-            + "\tLEFT JOIN TASK_TAGS tt ON t.id = tt.task_id\n"
-            + "\tGROUP BY t.id";
-
     ResultSet mockResultSet = mock(ResultSet.class);
     when(mockResultSet.next()).thenThrow(new SQLException("Database error"));
 
     // Mock jdbcTemplate behavior
-    when(jdbcTemplate.query(eq(expectedSql), any(ResultSetExtractor.class)))
+    mockJdbcTemplateQuery(mockResultSet);
+
+    // When/Then
+    SQLException exception =
+        assertThrows(
+            SQLException.class,
+            () -> taskDao.getTasks(),
+            "Should throw SQLException when database error occurs");
+    assertEquals("Database error", exception.getMessage(), "Exception message should match");
+
+    // Verify jdbcTemplate was called with correct SQL
+    verify(jdbcTemplate).query(eq(EXPECTED_SQL), any(ResultSetExtractor.class));
+  }
+
+  /** Helper method to set up common jdbcTemplate mocking behavior */
+  private void mockJdbcTemplateQuery(ResultSet mockResultSet) {
+    when(jdbcTemplate.query(eq(EXPECTED_SQL), any(ResultSetExtractor.class)))
         .thenAnswer(
             invocation -> {
               ResultSetExtractor<ArrayList<Task>> extractor = invocation.getArgument(1);
               return extractor.extractData(mockResultSet);
             });
-
-    // When/Then
-    assertThrows(SQLException.class, () -> taskDao.getTasks());
-
-    // Verify jdbcTemplate was called with correct SQL
-    verify(jdbcTemplate).query(eq(expectedSql), any(ResultSetExtractor.class));
   }
 }

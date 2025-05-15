@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,6 +24,7 @@ import com.event.tasker.DAO.impl.TaskDaoImpl;
 import com.event.tasker.model.Task;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Unit Test: TaskServiceImpl")
 class TaskServiceImplTest {
 
   @Mock private TaskDaoImpl taskDao;
@@ -32,6 +34,7 @@ class TaskServiceImplTest {
   @InjectMocks private TaskServiceImpl taskService;
 
   @Test
+  @DisplayName("Get tasks returns list of tasks successfully")
   void testGetTasksSuccess() {
     // Given
     ArrayList<Task> expectedTasks = new ArrayList<>();
@@ -63,6 +66,7 @@ class TaskServiceImplTest {
   }
 
   @Test
+  @DisplayName("Get tasks returns empty list when no tasks exist")
   void testGetTasksWithEmptyList() {
     // Given
     ArrayList<Task> expectedTasks = new ArrayList<>();
@@ -79,6 +83,7 @@ class TaskServiceImplTest {
   }
 
   @Test
+  @DisplayName("Get tasks returns null when database error occurs")
   void testGetTasksWithException() {
     // Given
     RuntimeException expectedException = new RuntimeException("Database error");

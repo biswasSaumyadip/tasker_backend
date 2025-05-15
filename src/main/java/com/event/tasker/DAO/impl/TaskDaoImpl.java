@@ -46,6 +46,7 @@ public class TaskDaoImpl implements TaskDao {
                     .description(resultSet.getString("description"))
                     .completed(resultSet.getBoolean("completed"))
                     .parentId(resultSet.getString("parentId"))
+                    .priority(Task.Priority.valueOf(resultSet.getString("priority")))
                     .tags(
                         CSVToArrayConverter.convertCommaSeparated(
                             resultSet.getString("tags"), String::trim))

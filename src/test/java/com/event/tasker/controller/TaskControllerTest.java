@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,6 +21,7 @@ import com.event.tasker.model.Task;
 import com.event.tasker.service.TaskService;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Unit Test: TaskController")
 class TaskControllerTest {
 
   @Mock private TaskService taskService;
@@ -27,6 +29,7 @@ class TaskControllerTest {
   @InjectMocks private TaskController taskController;
 
   @Test
+  @DisplayName("Get tasks returns successful response with task list")
   void testGetTasks_Success() {
     // Given
     ArrayList<Task> mockTasks = new ArrayList<>();
@@ -42,6 +45,7 @@ class TaskControllerTest {
   }
 
   @Test
+  @DisplayName("Get tasks returns error when service returns null")
   void testGetTasks_NullResponse() {
     // Given
     when(taskService.getTasks()).thenReturn(null);
@@ -57,6 +61,7 @@ class TaskControllerTest {
   }
 
   @Test
+  @DisplayName("Get tasks returns error when service throws exception")
   void testGetTasks_Exception() {
     // Given
     when(taskService.getTasks()).thenThrow(new RuntimeException("Test exception"));
@@ -72,6 +77,7 @@ class TaskControllerTest {
   }
 
   @Test
+  @DisplayName("Controller setup initializes MockMvc correctly")
   void testControllerSetup() {
     // Given
     MockMvc mockMvc = MockMvcBuilders.standaloneSetup(taskController).build();

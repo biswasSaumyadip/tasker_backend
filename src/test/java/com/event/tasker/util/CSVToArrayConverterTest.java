@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
@@ -13,9 +14,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Unit Test: CSVToArrayConverter")
 class CSVToArrayConverterTest {
 
   @Test
+  @DisplayName("Converting comma-separated string to list of strings")
   void testConvertCommaSeparatedToStrings() {
     // Given
     String csvString = "tag1, tag2,tag3 , tag4";
@@ -32,6 +35,7 @@ class CSVToArrayConverterTest {
   }
 
   @Test
+  @DisplayName("Converting comma-separated string to list of integers")
   void testConvertCommaSeparatedToIntegers() {
     // Given
     String csvString = "1, 2, 3, 4, 5";
@@ -49,6 +53,7 @@ class CSVToArrayConverterTest {
   }
 
   @Test
+  @DisplayName("Handling null input when converting comma-separated string")
   void testConvertCommaSeparatedWithNullInput() {
     // Given
     String csvString = null;
@@ -61,6 +66,7 @@ class CSVToArrayConverterTest {
   }
 
   @Test
+  @DisplayName("Handling empty input when converting comma-separated string")
   void testConvertCommaSeparatedWithEmptyInput() {
     // Given
     String csvString = "";
@@ -73,6 +79,7 @@ class CSVToArrayConverterTest {
   }
 
   @Test
+  @DisplayName("Handling whitespace-only input when converting comma-separated string")
   void testConvertCommaSeparatedWithWhitespaceOnlyInput() {
     // Given
     String csvString = "   ";
@@ -85,6 +92,7 @@ class CSVToArrayConverterTest {
   }
 
   @Test
+  @DisplayName("Handling empty elements when converting comma-separated string")
   void testConvertCommaSeparatedWithEmptyElements() {
     // Given
     String csvString = "tag1,,tag2, ,tag3";
@@ -100,6 +108,7 @@ class CSVToArrayConverterTest {
   }
 
   @Test
+  @DisplayName("Handling conversion exceptions when converting comma-separated string")
   void testConvertCommaSeparatedWithConversionExceptions() {
     // Given
     String csvString = "1,two,3,four,5";
@@ -115,6 +124,7 @@ class CSVToArrayConverterTest {
   }
 
   @Test
+  @DisplayName("Verifying exception logging when converting comma-separated string")
   void testConvertCommaSeparatedWithExceptionLogging() {
     // Given
     String csvString = "1,two,3";
