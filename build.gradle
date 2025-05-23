@@ -50,6 +50,7 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
@@ -186,7 +187,6 @@ afterEvaluate {
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import org.flywaydb.gradle.task.FlywayMigrateTask
 
 def dbUser = project.property('dbUser')
 def dbPassword = project.property('dbPassword')

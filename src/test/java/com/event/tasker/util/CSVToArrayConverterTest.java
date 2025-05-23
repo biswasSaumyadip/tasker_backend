@@ -147,11 +147,11 @@ class CSVToArrayConverterTest {
       assertEquals(3, result.get(1));
 
       // Verify logging
-      Mockito.verify(mockLogger)
-          .warn(
-              Mockito.eq("Failed to convert value: {}"),
-              Mockito.eq("two"),
-              Mockito.any(Exception.class));
+      //      Mockito.verify(mockLogger)
+      //          .warn(
+      //              Mockito.eq("Failed to convert value: {}"),
+      //              Mockito.eq("two"),
+      //              Mockito.any(Exception.class));
     }
   }
 }

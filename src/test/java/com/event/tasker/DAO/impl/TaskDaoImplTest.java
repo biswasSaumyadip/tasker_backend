@@ -76,7 +76,7 @@ class TaskDaoImplTest {
     when(mockResultSet.getString("parentId")).thenReturn(null, "1");
     when(mockResultSet.getString("tags")).thenReturn("tag1,tag2", "tag3");
     when(mockResultSet.getString("priority")).thenReturn("HIGH", "LOW");
-    when(mockResultSet.getString("profilePicture")).thenReturn(null, "profilePictureUrl");
+    when(mockResultSet.getString("profilePicture")).thenReturn("profilePictureUrl", null);
 
     // Mock jdbcTemplate behavior
     mockJdbcTemplateQuery(mockResultSet);
