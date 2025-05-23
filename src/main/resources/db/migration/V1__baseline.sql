@@ -44,7 +44,7 @@ CREATE TABLE `flyway_schema_history` (
 
 LOCK TABLES `flyway_schema_history` WRITE;
 /*!40000 ALTER TABLE `flyway_schema_history` DISABLE KEYS */;
-INSERT INTO `flyway_schema_history` VALUES (1,'1','<< Flyway Baseline >>','BASELINE','<< Flyway Baseline >>',NULL,'root','2025-05-23 15:12:19',0,1),(2,'20250523.142528','baseline','SQL','V20250523_142528__baseline.sql',-1124197075,'root','2025-05-23 15:12:19',647,1);
+INSERT INTO `flyway_schema_history` VALUES (1,'1','<< Flyway Baseline >>','BASELINE','<< Flyway Baseline >>',NULL,'root','2025-05-23 15:12:19',0,1),(2,'20250523.142528','baseline','SQL','V20250523_142528__baseline.sql',-1124197075,'root','2025-05-23 15:12:19',647,1),(4,'20250523.211103','baseline','SQL','V20250523_211103__baseline.sql',-54641467,'root','2025-05-23 16:05:06',362,1);
 /*!40000 ALTER TABLE `flyway_schema_history` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -328,4 +328,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-05-23 21:11:03
+-- Dump completed on 2025-05-23 21:50:38

@@ -194,16 +194,26 @@ def dbName = project.property('dbName')
 
 
 tasks.register('exportSchema', Exec) {
-    def formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
-    def timestamp = LocalDateTime.now().format(formatter)
-    def snapshotName = "V${timestamp}__baseline.sql"
+    doFirst {
+        def versionInput = project.hasProperty('schemaVersion') ? project.property('schemaVersion') : null
 
-    def isWindows = System.properties['os.name'].toLowerCase().contains('windows')
+        if (versionInput == null || !versionInput.isInteger()) {
+            throw new GradleException("❌ Please pass schema version like this: ./gradlew " +
+                    "exportSchema -PschemaVersion=4")
+        }
 
-    if (isWindows) {
-        commandLine 'cmd', '/c', "mysqldump -u${dbUser} -p${dbPassword}  ${dbName} > src\\main\\resources\\db\\migration\\${snapshotName}"
-    } else {
-        commandLine 'bash', '-c', "mysqldump -u${dbUser} -p${dbPassword}  ${dbName} > src/main/resources/db/migration/${snapshotName}"
+        def snapshotName = "V${versionInput}__baseline.sql"
+        def outputPath = "src/main/resources/db/migration/${snapshotName}"
+
+        def isWindows = System.properties['os.name'].toLowerCase().contains('windows')
+
+        println "✅ Dumping DB to: ${outputPath}"
+
+        if (isWindows) {
+            commandLine 'cmd', '/c', "mysqldump -u${dbUser} -p${dbPassword} ${dbName} > ${outputPath}"
+        } else {
+            commandLine 'bash', '-c', "mysqldump -u${dbUser} -p${dbPassword} ${dbName} > ${outputPath}"
+        }
     }
 }
 

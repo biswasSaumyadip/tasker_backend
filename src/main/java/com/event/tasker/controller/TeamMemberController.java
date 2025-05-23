@@ -25,6 +25,7 @@ public class TeamMemberController {
   @GetMapping("/members")
   public ResponseEntity<ArrayList<TeamMember>> getTeamMembers() {
     try {
+      log.info("Getting team members");
       ArrayList<TeamMember> teamMembers = teamMemberService.getTeamMembers();
       if (teamMembers == null) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
