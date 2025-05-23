@@ -33,6 +33,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
 
     // Database
     runtimeOnly 'com.mysql:mysql-connector-j'
@@ -187,7 +188,6 @@ afterEvaluate {
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-
 def dbUser = project.property('dbUser')
 def dbPassword = project.property('dbPassword')
 def dbName = project.property('dbName')

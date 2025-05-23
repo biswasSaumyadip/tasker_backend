@@ -36,22 +36,15 @@ management:
 
 # Logging configuration
 logging:
+  file:
+    name: logs/app.log        # Path and file name for log file
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n%ex"
+    file:    "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n%ex"
   level:
     root: INFO
     com.event: DEBUG
     org.springframework: INFO
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
-# Swagger/OpenAPI configuration
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-    operations-sorter: method
-  packages-to-scan: com.event.tasker.controller
 
 # database migration flyway
