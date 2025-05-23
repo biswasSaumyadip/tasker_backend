@@ -31,4 +31,5 @@ public class Task {
   private String assignedTo; // user ID or reference
   private String parentId; // null if top-level
   private List<String> tags; // optional categorization
+  private String profilePicture;
 }

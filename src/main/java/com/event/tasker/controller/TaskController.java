@@ -4,9 +4,7 @@ import java.util.ArrayList;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.event.tasker.model.Task;
 import com.event.tasker.service.TaskService;
@@ -34,5 +32,22 @@ public class TaskController {
       log.error("Error retrieving tasks", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
+  }
+
+  @GetMapping("/{id}")
+  public Object getTaskById(String id) {
+    return new Object() {
+      String test = "test";
+    };
+  }
+
+  @PostMapping()
+  public Object createTask(@RequestBody Task task) {
+    return new Object() {};
+  }
+
+  @GetMapping("/{id}/start")
+  public Object startTask(String id) {
+    return new Object() {};
   }
 }

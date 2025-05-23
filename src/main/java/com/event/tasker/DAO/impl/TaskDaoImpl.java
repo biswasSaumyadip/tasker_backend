@@ -23,6 +23,7 @@ public class TaskDaoImpl implements TaskDao {
             + "       CONCAT(u.first_name, ' ', u.last_name) AS assignedTo,\n"
             + "       t.created_at                           AS createdAt,\n"
             + "       t.due_date                             AS dueDate,\n"
+            + "       u.profile_picture_url                  AS profilePicture, \n"
             + "       parent_id                              AS parentID,\n"
             + "       GROUP_CONCAT(tt.tag)                   AS tags\n"
             + "FROM tasks t\n"
@@ -47,6 +48,7 @@ public class TaskDaoImpl implements TaskDao {
                     .completed(resultSet.getBoolean("completed"))
                     .parentId(resultSet.getString("parentId"))
                     .priority(Task.Priority.valueOf(resultSet.getString("priority")))
+                    .profilePicture(resultSet.getString("profilePicture"))
                     .tags(
                         CSVToArrayConverter.convertCommaSeparated(
                             resultSet.getString("tags"), String::trim))

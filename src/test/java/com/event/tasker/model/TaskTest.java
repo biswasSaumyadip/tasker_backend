@@ -204,6 +204,7 @@ class TaskTest {
     String assignedTo = "user3";
     String parentId = "parent789";
     List<String> tags = Arrays.asList("constructor", "test");
+    String profilePictureUrl = "https://example.com/profile.png";
 
     // When
     Task task =
@@ -217,7 +218,8 @@ class TaskTest {
             createdAt,
             assignedTo,
             parentId,
-            tags);
+            tags,
+            profilePictureUrl);
 
     // Then
     assertEquals(id, task.getId());
@@ -230,6 +232,7 @@ class TaskTest {
     assertEquals(assignedTo, task.getAssignedTo());
     assertEquals(parentId, task.getParentId());
     assertEquals(tags, task.getTags());
+    assertEquals(profilePictureUrl, task.getProfilePicture());
   }
 
   @Test
@@ -249,5 +252,6 @@ class TaskTest {
     assertNull(task.getAssignedTo());
     assertNull(task.getParentId());
     assertNull(task.getTags());
+    assertNull(task.getProfilePicture());
   }
 }

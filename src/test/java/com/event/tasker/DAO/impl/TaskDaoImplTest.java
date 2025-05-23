@@ -42,6 +42,7 @@ class TaskDaoImplTest {
           + "       CONCAT(u.first_name, ' ', u.last_name) AS assignedTo,\n"
           + "       t.created_at                           AS createdAt,\n"
           + "       t.due_date                             AS dueDate,\n"
+          + "       u.profile_picture_url                  AS profilePicture, \n"
           + "       parent_id                              AS parentID,\n"
           + "       GROUP_CONCAT(tt.tag)                   AS tags\n"
           + "FROM tasks t\n"
@@ -75,6 +76,7 @@ class TaskDaoImplTest {
     when(mockResultSet.getString("parentId")).thenReturn(null, "1");
     when(mockResultSet.getString("tags")).thenReturn("tag1,tag2", "tag3");
     when(mockResultSet.getString("priority")).thenReturn("HIGH", "LOW");
+    when(mockResultSet.getString("profilePicture")).thenReturn(null, "profilePictureUrl");
 
     // Mock jdbcTemplate behavior
     mockJdbcTemplateQuery(mockResultSet);
@@ -108,6 +110,10 @@ class TaskDaoImplTest {
       assertNull(task1.getParentId(), "First task should not have a parent");
       assertEquals(Task.Priority.HIGH, task1.getPriority(), "First task priority should be HIGH");
       assertEquals(Arrays.asList("tag1", "tag2"), task1.getTags(), "First task tags should match");
+      assertEquals(
+          "profilePictureUrl",
+          task1.getProfilePicture(),
+          "First task profile picture should match");
 
       // Verify second task
       Task task2 = tasks.get(1);
@@ -121,6 +127,7 @@ class TaskDaoImplTest {
       assertEquals("1", task2.getParentId(), "Second task should have parent ID 1");
       assertEquals(Task.Priority.LOW, task2.getPriority(), "Second task priority should be LOW");
       assertEquals(Arrays.asList("tag3"), task2.getTags(), "Second task tags should match");
+      assertNull(task2.getProfilePicture(), "Second task profile picture should be null");
 
       // Verify jdbcTemplate was called with correct SQL
       verify(jdbcTemplate).query(eq(EXPECTED_SQL), any(ResultSetExtractor.class));

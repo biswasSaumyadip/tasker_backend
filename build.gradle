@@ -1,3 +1,5 @@
+import java.time.LocalDateTime
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.5'
@@ -7,6 +9,7 @@ plugins {
     id 'jacoco'
     id 'org.sonarqube' version '4.4.1.3373'
     id 'com.github.ben-manes.versions' version '0.50.0'
+    id 'org.flywaydb.flyway' version '11.8.2'
 }
 
 group = 'com.event'
@@ -29,6 +32,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.flywaydb:flyway-core'
 
     // Database
     runtimeOnly 'com.mysql:mysql-connector-j'
@@ -129,7 +133,7 @@ tasks.named('dependencyUpdates').configure {
 }
 
 // Task to set up git hooks cross-platform
-task setupGitHooks {
+tasks.register('setupGitHooks') {
     group = 'Setup'
     description = 'Sets up git hooks for all platforms'
 
@@ -178,4 +182,34 @@ afterEvaluate {
     tasks.named('processResources').configure {
         dependsOn setupGitHooks
     }
+}
+
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import org.flywaydb.gradle.task.FlywayMigrateTask
+
+def dbUser = project.property('dbUser')
+def dbPassword = project.property('dbPassword')
+def dbName = project.property('dbName')
+
+
+tasks.register('exportSchema', Exec) {
+    def formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+    def timestamp = LocalDateTime.now().format(formatter)
+    def snapshotName = "V${timestamp}__baseline.sql"
+
+    def isWindows = System.properties['os.name'].toLowerCase().contains('windows')
+
+    if (isWindows) {
+        commandLine 'cmd', '/c', "mysqldump -u${dbUser} -p${dbPassword}  ${dbName} > src\\main\\resources\\db\\migration\\${snapshotName}"
+    } else {
+        commandLine 'bash', '-c', "mysqldump -u${dbUser} -p${dbPassword}  ${dbName} > src/main/resources/db/migration/${snapshotName}"
+    }
+}
+
+flyway {
+    url = "jdbc:mysql://localhost:3306/${dbName}"
+    user =  dbUser
+    password =  dbPassword
+    locations = ['filesystem:src/main/resources/db/migration']
 }
