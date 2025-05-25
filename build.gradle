@@ -82,6 +82,16 @@ jacocoTestCoverageVerification {
     }
 }
 
+sonarqube {
+    properties {
+        property "sonar.gradle.skipCompile", "true"
+    }
+}
+
+tasks.named('sonarqube') {
+    dependsOn 'build'
+}
+
 // Code style configuration
 checkstyle {
     toolVersion = "10.3.3"
@@ -155,32 +165,31 @@ tasks.register('setupGitHooks') {
             include 'commit-msg'
         }
 
-        // Make hooks executable
         if (!isWindows) {
-            exec {
-                commandLine 'chmod', '+x', '.git/hooks/pre-commit', '.git/hooks/commit-msg'
-            }
-        }
-
-        // Special handling for Windows
-        if (isWindows) {
+            // Use Java ProcessBuilder instead of exec
+            ['chmod', '+x', '.git/hooks/pre-commit', '.git/hooks/commit-msg'].execute().waitFor()
+        } else {
             copy {
                 from 'scripts/git-hooks'
                 into '.git/hooks'
                 include 'pre-commit.bat'
             }
-            exec {
-                commandLine 'cmd', '/c', 'icacls', '.git/hooks/pre-commit.bat', '/grant', 'Everyone:RX'
-            }
-            exec {
-                commandLine 'cmd', '/c', 'icacls', '.git/hooks/pre-commit', '/grant', 'Everyone:RX'
-            }
-            exec {
-                commandLine 'cmd', '/c', 'icacls', '.git/hooks/commit-msg', '/grant', 'Everyone:RX'
+
+            // Using ProcessBuilder for Windows icacls commands
+            def commands = [
+                    ['cmd', '/c', 'icacls', '.git/hooks/pre-commit.bat', '/grant', 'Everyone:RX'],
+                    ['cmd', '/c', 'icacls', '.git/hooks/pre-commit', '/grant', 'Everyone:RX'],
+                    ['cmd', '/c', 'icacls', '.git/hooks/commit-msg', '/grant', 'Everyone:RX']
+            ]
+
+            commands.each { cmd ->
+                def process = new ProcessBuilder(cmd).inheritIO().start()
+                process.waitFor()
             }
         }
     }
 }
+
 
 // Run setupGitHooks after project evaluation
 afterEvaluate {
