@@ -26,7 +26,7 @@ public class TeamMemberServiceImplTest {
 
   @Test
   @DisplayName("Unit Test: getTeamMembers Should get list of team members")
-  void testGetTeamMembers_ShouldGetListOfTeamMembers() {
+  void testGetTeamMembersShouldGetListOfTeamMembers() {
     // arrange
     ArrayList<TeamMember> teamMembers = new ArrayList<>();
     TeamMember teamMember1 = new TeamMember();
@@ -43,7 +43,7 @@ public class TeamMemberServiceImplTest {
 
   @Test
   @DisplayName("Unit Test: getTeamMembers should throw exception and handle gracefully")
-  void testGetTeamMembers_ShouldThrowExceptionAndHandleGracefully() {
+  void testGetTeamMembersShouldThrowExceptionAndHandleGracefully() {
     // arrange
 
     // act
@@ -58,7 +58,7 @@ public class TeamMemberServiceImplTest {
 
   @Test
   @DisplayName("Unit Test: getTeamMembers: Should handle unexpected exception gracefully")
-  void testGetTeamMembers_ShouldHandleUnexpectedExceptionGracefully() {
+  void testGetTeamMembersShouldHandleUnexpectedExceptionGracefully() {
     when(teamMemberDao.getTeamMembers()).thenThrow(new RuntimeException("DB error") {});
 
     RuntimeException thrown =

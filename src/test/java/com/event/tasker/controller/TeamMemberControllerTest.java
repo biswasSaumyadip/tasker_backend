@@ -30,7 +30,7 @@ class TeamMemberControllerTest {
 
   @Test
   @DisplayName("Get team members returns successful response with team member list")
-  void testGetTeamMembers_Success() {
+  void testGetTeamMembersSuccess() {
     // Given
     ArrayList<TeamMember> mockTeamMembers = new ArrayList<>();
     mockTeamMembers.add(new TeamMember());
@@ -46,7 +46,7 @@ class TeamMemberControllerTest {
 
   @Test
   @DisplayName("Get team members returns error when service returns null")
-  void testGetTeamMembers_NullResponse() {
+  void testGetTeamMembersNullResponse() {
     // Given
     when(teamMemberService.getTeamMembers()).thenReturn(null);
 
@@ -62,7 +62,7 @@ class TeamMemberControllerTest {
 
   @Test
   @DisplayName("Get team members returns error when service throws exception")
-  void testGetTeamMembers_Exception() {
+  void testGetTeamMembersException() {
     // Given
     when(teamMemberService.getTeamMembers()).thenThrow(new RuntimeException("Test exception"));
 

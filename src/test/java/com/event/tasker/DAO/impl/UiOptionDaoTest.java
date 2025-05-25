@@ -65,7 +65,7 @@ public class UiOptionDaoTest {
 
   @Test
   @DisplayName("Unit Test: getPriorityLabels should throw exception and handle gracefully")
-  void testGetPriorityLabels_ShouldThrowExceptionAndHandleGracefully() {
+  void testGetPriorityLabelsShouldThrowExceptionAndHandleGracefully() {
     when(jdbcTemplate.query(anyString(), any(ResultSetExtractor.class)))
         .thenThrow(new DataAccessException("Simulated DB error") {});
 

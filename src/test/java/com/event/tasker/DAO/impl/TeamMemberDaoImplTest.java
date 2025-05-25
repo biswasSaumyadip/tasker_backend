@@ -30,7 +30,7 @@ public class TeamMemberDaoImplTest {
 
   @Test
   @DisplayName("Unit Test: getTeamMembers Should return TeamMembers")
-  void testGetTeamMembers_ShouldReturnTeamMembers() throws SQLException {
+  void testGetTeamMembersShouldReturnTeamMembers() throws SQLException {
     // Given
     ResultSet mockResultSet = mock(ResultSet.class);
     // When
@@ -55,7 +55,7 @@ public class TeamMemberDaoImplTest {
 
   @Test
   @DisplayName("Unit Test: getTeamMembers should throw exception and handle gracefully")
-  void testGetTeamMembers_ShouldThrowExceptionAndHandleGracefully() {
+  void testGetTeamMembersShouldThrowExceptionAndHandleGracefully() {
     when(jdbcTemplate.query(anyString(), any(ResultSetExtractor.class)))
         .thenThrow(new DataAccessException("Simulated DB error") {});
 

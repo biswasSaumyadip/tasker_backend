@@ -56,7 +56,7 @@ class TaskDaoImplTest {
 
   @Test
   @DisplayName("Get tasks returns multiple tasks successfully")
-  void testGetTasks_ReturnsMultipleTasks() throws SQLException {
+  void testGetTasksReturnsMultipleTasks() throws SQLException {
     // Given
     ResultSet mockResultSet = mock(ResultSet.class);
     Instant now = Instant.now();
@@ -136,7 +136,7 @@ class TaskDaoImplTest {
 
   @Test
   @DisplayName("Get tasks returns empty list when no tasks exist")
-  void testGetTasks_ReturnsEmptyList() throws SQLException {
+  void testGetTasksReturnsEmptyList() throws SQLException {
     // Given
     ResultSet mockResultSet = mock(ResultSet.class);
     when(mockResultSet.next()).thenReturn(false); // No rows
@@ -157,7 +157,7 @@ class TaskDaoImplTest {
 
   @Test
   @DisplayName("Get tasks throws SQLException when database error occurs")
-  void testGetTasks_ThrowsSQLException() throws SQLException {
+  void testGetTasksThrowsSQLException() throws SQLException {
     // Given
     ResultSet mockResultSet = mock(ResultSet.class);
     when(mockResultSet.next()).thenThrow(new SQLException("Database error"));

@@ -30,7 +30,7 @@ class TaskControllerTest {
 
   @Test
   @DisplayName("Get tasks returns successful response with task list")
-  void testGetTasks_Success() {
+  void testGetTasksSuccess() {
     // Given
     ArrayList<Task> mockTasks = new ArrayList<>();
     mockTasks.add(new Task());
@@ -46,7 +46,7 @@ class TaskControllerTest {
 
   @Test
   @DisplayName("Get tasks returns error when service returns null")
-  void testGetTasks_NullResponse() {
+  void testGetTasksNullResponse() {
     // Given
     when(taskService.getTasks()).thenReturn(null);
 
@@ -62,7 +62,7 @@ class TaskControllerTest {
 
   @Test
   @DisplayName("Get tasks returns error when service throws exception")
-  void testGetTasks_Exception() {
+  void testGetTasksException() {
     // Given
     when(taskService.getTasks()).thenThrow(new RuntimeException("Test exception"));
 
