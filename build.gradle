@@ -82,16 +82,6 @@ jacocoTestCoverageVerification {
     }
 }
 
-sonarqube {
-    properties {
-        property "sonar.gradle.skipCompile", "true"
-    }
-}
-
-tasks.named('sonarqube') {
-    dependsOn 'build'
-}
-
 // Code style configuration
 checkstyle {
     toolVersion = "10.3.3"
