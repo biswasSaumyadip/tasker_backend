@@ -40,7 +40,8 @@ public class UiOptionDaoImpl implements UIOptionDao {
               uiOptions.add(uiOption);
             }
             return uiOptions;
-          });
+          },
+          id);
     } catch (DataAccessException e) {
       log.error("Error retrieving priority labels", e);
       throw new DataAccessException("Error retrieving priority labels") {};
