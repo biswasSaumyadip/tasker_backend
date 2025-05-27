@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.event.tasker.model.Task;
+import com.event.tasker.model.TaskerResponse;
 import com.event.tasker.service.TaskService;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,14 +35,18 @@ class TaskControllerTest {
     // Given
     ArrayList<Task> mockTasks = new ArrayList<>();
     mockTasks.add(new Task());
-    when(taskService.getTasks()).thenReturn(mockTasks);
+
+    TaskerResponse<ArrayList<Task>> expectedResponse =
+        TaskerResponse.<ArrayList<Task>>builder().data(mockTasks).build();
+
+    when(taskService.getTasks()).thenReturn(expectedResponse.getData());
 
     // When
-    ResponseEntity<ArrayList<Task>> response = taskController.getTasks();
+    ResponseEntity<TaskerResponse<ArrayList<Task>>> response = taskController.getTasks();
 
     // Then
     assertEquals(HttpStatus.OK, response.getStatusCode(), "Should return OK status");
-    assertEquals(mockTasks, response.getBody(), "Should return tasks from service");
+    assertEquals(expectedResponse, response.getBody(), "Should return tasks from service");
   }
 
   @Test
@@ -51,7 +56,7 @@ class TaskControllerTest {
     when(taskService.getTasks()).thenReturn(null);
 
     // When
-    ResponseEntity<ArrayList<Task>> response = taskController.getTasks();
+    ResponseEntity<TaskerResponse<ArrayList<Task>>> response = taskController.getTasks();
 
     // Then
     assertEquals(
@@ -67,7 +72,7 @@ class TaskControllerTest {
     when(taskService.getTasks()).thenThrow(new RuntimeException("Test exception"));
 
     // When
-    ResponseEntity<ArrayList<Task>> response = taskController.getTasks();
+    ResponseEntity<TaskerResponse<ArrayList<Task>>> response = taskController.getTasks();
 
     // Then
     assertEquals(

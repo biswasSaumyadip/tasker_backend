@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.event.tasker.model.Task;
+import com.event.tasker.model.TaskerResponse;
 import com.event.tasker.service.TaskService;
 
 import lombok.RequiredArgsConstructor;
@@ -25,13 +26,17 @@ public class TaskController {
   private final TaskService taskService;
 
   @GetMapping("/list")
-  public ResponseEntity<ArrayList<Task>> getTasks() {
+  public ResponseEntity<TaskerResponse<ArrayList<Task>>> getTasks() {
     try {
       ArrayList<Task> tasks = taskService.getTasks();
       if (tasks == null) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
       }
-      return ResponseEntity.ok(tasks);
+
+      TaskerResponse<ArrayList<Task>> response =
+          TaskerResponse.<ArrayList<Task>>builder().data(tasks).build();
+
+      return ResponseEntity.ok(response);
     } catch (Exception e) {
       log.error("Error retrieving tasks", e);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();

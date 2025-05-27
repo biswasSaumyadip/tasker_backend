@@ -6,4 +6,6 @@ import com.event.tasker.model.Task;
 
 public interface TaskDao {
   ArrayList<Task> getTasks();
+
+  String createTask(Task task);
 }

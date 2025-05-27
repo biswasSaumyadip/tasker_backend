@@ -60,4 +60,9 @@ public class TaskDaoImpl implements TaskDao {
           return tasks;
         });
   }
+
+  @Override
+  public String createTask(Task task) {
+    return "";
+  }
 }
