@@ -2,7 +2,10 @@ package com.event.tasker.DAO.impl;
 
 import java.util.ArrayList;
 
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 import com.event.tasker.DAO.TaskDao;
@@ -10,9 +13,11 @@ import com.event.tasker.model.Task;
 import com.event.tasker.util.CSVToArrayConverter;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class TaskDaoImpl implements TaskDao {
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -63,6 +68,26 @@ public class TaskDaoImpl implements TaskDao {
 
   @Override
   public String createTask(Task task) {
-    return "";
+    try {
+      String SQL =
+          """
+          INSERT INTO tasks
+          (id, title, description, completed, priority, due_date, assigned_to, parent_id)
+          VALUES (:id, :title, :description, :completed, :priority, :dueDate, :assigned_to,
+          		  :parentId);
+          """;
+
+      SqlParameterSource parameterSource = new BeanPropertySqlParameterSource(task);
+
+      int rowsAffected = jdbcTemplate.update(SQL, parameterSource);
+
+      return rowsAffected > 0 ? task.getId() : null;
+    } catch (DataAccessException e) {
+      log.error("Error creating task", e);
+      throw e;
+    } catch (Exception e) {
+      log.error("Error creating task", e);
+      throw new RuntimeException(e.getMessage());
+    }
   }
 }
