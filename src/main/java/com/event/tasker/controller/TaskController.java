@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.event.tasker.model.Task;
+import com.event.tasker.model.TaskDetail;
 import com.event.tasker.model.TaskerResponse;
 import com.event.tasker.service.TaskService;
 
@@ -51,7 +52,7 @@ public class TaskController {
   }
 
   @PostMapping()
-  public Object createTask(@RequestBody Task task) {
+  public Object createTask(@RequestBody TaskDetail task) {
     return new Object() {};
   }
 
