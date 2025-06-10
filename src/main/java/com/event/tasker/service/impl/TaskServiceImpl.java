@@ -1,9 +1,12 @@
 package com.event.tasker.service.impl;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.event.tasker.DAO.TaskAttachmentDao;
 import com.event.tasker.DAO.TaskTagDao;
@@ -27,6 +30,7 @@ public class TaskServiceImpl implements TaskService {
   private final TaskAttachmentDao taskAttachmentDao;
   private final TaskTagDao taskTagDao;
   private final FileStorageService fileStorageService;
+  private final TransactionTemplate transactionTemplate;
 
   public ArrayList<Task> getTasks() {
     try {
@@ -38,8 +42,7 @@ public class TaskServiceImpl implements TaskService {
   }
 
   @Override
-  @Transactional
-  public TaskerResponse<String> addTask(TaskDetail task) {
+  public TaskerResponse<String> addTask(TaskDetail task, List<MultipartFile> files) {
     log.info("Adding task {}", task.getId());
 
     // First file gets upload
@@ -47,21 +50,6 @@ public class TaskServiceImpl implements TaskService {
     // if failed then gets prompt whether to proceed and upload later or try again or cancel task
     // creation
     //
-
-    TaskerResponse<String> response = new TaskerResponse<>();
-
-    String insertStatus =
-        taskDao.createTask(
-            Task.builder()
-                .id(task.getId())
-                .description(task.getDescription())
-                .title(task.getTitle())
-                .dueDate(task.getDueDate())
-                .priority(task.getPriority())
-                .parentId(task.getParentId())
-                .assignedTo(task.getAssignedTo())
-                .tags(task.getTags())
-                .build());
 
     log.info("Task {} added", task.getId());
 
@@ -73,18 +61,67 @@ public class TaskServiceImpl implements TaskService {
     }
 
     log.info("{} tags are ready to be inserted", taskTags.size());
-    int insertedRowCount = taskTagDao.createTaskTags(taskTags);
 
-    if (insertedRowCount > 0) {
-      log.info("Task tags inserted successfully");
-    } else if (insertedRowCount != taskTags.size()) {
-      log.warn("{} task tags insert failed", taskTags.size() - insertedRowCount);
-    } else {
-      log.error("Task tags insert failed");
+    String taskStatus =
+        transactionTemplate.execute(
+            status -> {
+              String insertStatus =
+                  taskDao.createTask(
+                      Task.builder()
+                          .id(task.getId())
+                          .description(task.getDescription())
+                          .title(task.getTitle())
+                          .dueDate(task.getDueDate())
+                          .priority(task.getPriority())
+                          .parentId(task.getParentId())
+                          .assignedTo(task.getAssignedTo())
+                          .tags(task.getTags())
+                          .build());
+
+              taskTagDao.createTaskTags(taskTags);
+
+              return insertStatus;
+            });
+
+    if (task.getAttachments() != null) {
+      try {
+        this.addAttachments(task.getId(), files);
+      } catch (RuntimeException e) {
+        // The file upload failed, but the task is already saved.
+        // We must return a special response to tell the user.
+        log.warn("Task {} created, but file upload failed.", task.getId());
+        TaskerResponse<String> response = new TaskerResponse<>();
+        response.setStatus("PARTIAL_SUCCESS");
+        response.setMessage("Task created, but file attachment failed.");
+        response.setData(taskStatus);
+        return response;
+      }
     }
-
     //    taskAttachmentDao.createAttachment();
 
     return null;
+  }
+
+  public void addAttachments(String taskId, List<MultipartFile> files) {
+    if (files == null || files.isEmpty()) {
+      return;
+    }
+
+    for (MultipartFile file : files) {
+      if (file.isEmpty()) {
+        continue;
+      }
+
+      String uniqueFileName;
+      try {
+        uniqueFileName = fileStorageService.uploadFile(file);
+        taskAttachmentDao.createAttachment(fileStorageService.getFileMetadata(uniqueFileName));
+
+      } catch (IOException e) {
+        log.error(
+            "Upload failed for one of the files for task {}. Rolling back this batch.", taskId, e);
+        throw new RuntimeException("Failed to store file " + file.getOriginalFilename(), e);
+      }
+    }
   }
 }

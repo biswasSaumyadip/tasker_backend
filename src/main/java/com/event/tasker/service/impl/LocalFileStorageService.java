@@ -54,7 +54,7 @@ public class LocalFileStorageService implements FileStorageService {
       throw new IOException("Invalid file path sequence in filename: " + originalFileName);
     }
 
-    String uniqueFileName = UUID.randomUUID().toString() + "_" + originalFileName;
+    String uniqueFileName = UUID.randomUUID() + "_" + originalFileName;
 
     // Note: We now use the 'fileStorageLocation' field which is already an absolute, normalized
     // path
@@ -69,8 +69,32 @@ public class LocalFileStorageService implements FileStorageService {
   }
 
   @Override
-  public Attachment getFileMetadata(String fileId) {
-    return null;
+  public Attachment getFileMetadata(String fileId) throws IOException {
+
+    Path filePath = this.fileStorageLocation.resolve(fileId).normalize();
+
+    if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
+      throw new FileNotFoundException("Could not read file from disk: " + fileId);
+    }
+
+    // Create the resource object from the file path
+    Resource resource = new UrlResource(filePath.toUri());
+
+    // Probe the file to determine its content type (e.g., "image/png")
+    String contentType = Files.probeContentType(filePath);
+
+    // If the OS can't determine the type, provide a default
+    if (contentType == null) {
+      contentType = "application/octet-stream";
+    }
+
+    log.info("Successfully loaded file {} from disk with content type {}", fileId, contentType);
+
+    return Attachment.builder()
+        .fileType(contentType)
+        .fileName(fileId)
+        .url(resource.getURL().toString())
+        .build();
   }
 
   @Override

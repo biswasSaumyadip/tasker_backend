@@ -122,7 +122,7 @@ class LocalFileStorageServiceTest {
 
   @Test
   @DisplayName("getFileMetadata: should return null as it's not implemented")
-  void testGetFileMetadataReturnsNull() {
+  void testGetFileMetadataReturnsNull() throws IOException {
     // Act
     Attachment result = fileStorageService.getFileMetadata("file-id");
 

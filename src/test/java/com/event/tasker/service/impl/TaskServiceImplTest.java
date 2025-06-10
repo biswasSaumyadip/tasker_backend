@@ -3,14 +3,21 @@ package com.event.tasker.service.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,15 +26,28 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.event.tasker.DAO.TaskAttachmentDao;
+import com.event.tasker.DAO.TaskTagDao;
 import com.event.tasker.DAO.impl.TaskDaoImpl;
+import com.event.tasker.model.Attachment;
 import com.event.tasker.model.Task;
+import com.event.tasker.model.TaskDetail;
+import com.event.tasker.model.TaskerResponse;
+import com.event.tasker.service.FileStorageService;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Unit Test: TaskServiceImpl")
 class TaskServiceImplTest {
 
   @Mock private TaskDaoImpl taskDao;
+  @Mock private TaskAttachmentDao taskAttachmentDao;
+  @Mock private TaskTagDao taskTagDao;
+  @Mock private FileStorageService fileStorageService;
+  @Mock private TransactionTemplate transactionTemplate;
+  @Mock private MultipartFile mockFile;
 
   @Mock private Logger logger;
 
@@ -97,5 +117,237 @@ class TaskServiceImplTest {
     verify(taskDao).getTasks();
     // Note: We can't easily verify the logging with Lombok's @Slf4j
     // as it creates a private static final logger
+  }
+
+  @Test
+  @DisplayName("addAttachments: should upload files successfully")
+  void testAddAttachmentsSuccess() throws IOException {
+    // Given
+    String taskId = "task-123";
+    List<MultipartFile> files = Arrays.asList(mockFile, mockFile);
+    String uniqueFileName = "unique-file-name";
+    Attachment mockAttachment = Attachment.builder().id("att-1").taskId(taskId).build();
+
+    when(mockFile.isEmpty()).thenReturn(false);
+    when(fileStorageService.uploadFile(mockFile)).thenReturn(uniqueFileName);
+    when(fileStorageService.getFileMetadata(uniqueFileName)).thenReturn(mockAttachment);
+
+    // When
+    taskService.addAttachments(taskId, files);
+
+    // Then
+    verify(fileStorageService, times(2)).uploadFile(mockFile);
+    verify(fileStorageService, times(2)).getFileMetadata(uniqueFileName);
+    verify(taskAttachmentDao, times(2)).createAttachment(mockAttachment);
+  }
+
+  @Test
+  @DisplayName("addAttachments: should do nothing when files list is empty")
+  void testAddAttachmentsWithEmptyFilesList() {
+    // Given
+    String taskId = "task-123";
+    List<MultipartFile> emptyFiles = Collections.emptyList();
+
+    // When
+    taskService.addAttachments(taskId, emptyFiles);
+
+    // Then
+    verifyNoInteractions(fileStorageService);
+    verifyNoInteractions(taskAttachmentDao);
+  }
+
+  @Test
+  @DisplayName("addAttachments: should do nothing when files list is null")
+  void testAddAttachmentsWithNullFilesList() {
+    // Given
+    String taskId = "task-123";
+
+    // When
+    taskService.addAttachments(taskId, null);
+
+    // Then
+    verifyNoInteractions(fileStorageService);
+    verifyNoInteractions(taskAttachmentDao);
+  }
+
+  @Test
+  @DisplayName("addAttachments: should skip empty files")
+  void testAddAttachmentsSkipsEmptyFiles() throws IOException {
+    // Given
+    String taskId = "task-123";
+    List<MultipartFile> files = List.of(mockFile);
+    String uniqueFileName = "unique-file-name";
+    Attachment mockAttachment = Attachment.builder().id("att-1").taskId(taskId).build();
+
+    when(mockFile.isEmpty()).thenReturn(true);
+
+    // When
+    taskService.addAttachments(taskId, files);
+
+    // Then
+    verify(fileStorageService, never()).uploadFile(any());
+    verify(taskAttachmentDao, never()).createAttachment(any());
+  }
+
+  @Test
+  @DisplayName("addAttachments: should throw RuntimeException when file upload fails")
+  void testAddAttachmentsThrowsExceptionOnUploadFailure() throws IOException {
+    // Given
+    String taskId = "task-123";
+    List<MultipartFile> files = List.of(mockFile);
+    IOException uploadException = new IOException("Upload failed");
+
+    when(mockFile.isEmpty()).thenReturn(false);
+    when(fileStorageService.uploadFile(mockFile)).thenThrow(uploadException);
+    when(mockFile.getOriginalFilename()).thenReturn("test-file.txt");
+
+    // When & Then
+    RuntimeException thrown =
+        assertThrows(RuntimeException.class, () -> taskService.addAttachments(taskId, files));
+
+    assertTrue(thrown.getMessage().contains("Failed to store file"));
+    assertEquals(uploadException, thrown.getCause());
+  }
+
+  @Test
+  @DisplayName("addTask: should create task successfully")
+  void testAddTaskSuccess() {
+    // Given
+    String taskId = "task-123";
+    List<String> tags = Arrays.asList("tag1", "tag2");
+    TaskDetail taskDetail =
+        TaskDetail.builder()
+            .id(taskId)
+            .title("Test Task")
+            .description("Test Description")
+            .tags(tags)
+            .build();
+
+    List<MultipartFile> files = null;
+    String insertStatus = "SUCCESS";
+
+    // Mock transaction execution to actually execute the lambda
+    when(transactionTemplate.execute(any()))
+        .thenAnswer(
+            invocation -> {
+              // Get the lambda function passed to execute()
+              org.springframework.transaction.support.TransactionCallback<String> callback =
+                  invocation.getArgument(0);
+              // Execute the lambda and return the result
+              when(taskDao.createTask(any(Task.class))).thenReturn(insertStatus);
+              return callback.doInTransaction(null);
+            });
+
+    // When
+    TaskerResponse<String> response = taskService.addTask(taskDetail, null);
+
+    // Then
+    verify(taskDao).createTask(any(Task.class));
+    verify(taskTagDao).createTaskTags(any());
+    // Since files is null, addAttachments should not interact with fileStorageService
+    verifyNoInteractions(fileStorageService);
+  }
+
+  @Test
+  @DisplayName("addTask: should create task with attachments successfully")
+  void testAddTaskWithAttachmentsSuccess() throws IOException {
+    // Given
+    String taskId = "task-123";
+    List<String> tags = Arrays.asList("tag1", "tag2");
+    List<Attachment> attachments =
+        Collections.singletonList(Attachment.builder().id("att-1").taskId(taskId).build());
+
+    TaskDetail taskDetail =
+        TaskDetail.builder()
+            .id(taskId)
+            .title("Test Task")
+            .description("Test Description")
+            .tags(tags)
+            .attachments(attachments)
+            .build();
+
+    List<MultipartFile> files = List.of(mockFile);
+    String insertStatus = "SUCCESS";
+    String uniqueFileName = "unique-file-name";
+
+    // Mock transaction execution to actually execute the lambda
+    when(transactionTemplate.execute(any()))
+        .thenAnswer(
+            invocation -> {
+              // Get the lambda function passed to execute()
+              org.springframework.transaction.support.TransactionCallback<String> callback =
+                  invocation.getArgument(0);
+              // Execute the lambda and return the result
+              when(taskDao.createTask(any(Task.class))).thenReturn(insertStatus);
+              return callback.doInTransaction(null);
+            });
+
+    // Mock file upload
+    when(mockFile.isEmpty()).thenReturn(false);
+    when(fileStorageService.uploadFile(mockFile)).thenReturn(uniqueFileName);
+    when(fileStorageService.getFileMetadata(uniqueFileName))
+        .thenReturn(Attachment.builder().id("att-1").taskId(taskId).build());
+
+    // When
+    TaskerResponse<String> response = taskService.addTask(taskDetail, files);
+
+    // Then
+    verify(taskDao).createTask(any(Task.class));
+    verify(taskTagDao).createTaskTags(any());
+    verify(fileStorageService).uploadFile(mockFile);
+    verify(taskAttachmentDao).createAttachment(any(Attachment.class));
+  }
+
+  @Test
+  @DisplayName("addTask: should return partial success when task is created but file upload fails")
+  void testAddTaskPartialSuccess() throws IOException {
+    // Given
+    String taskId = "task-123";
+    List<String> tags = Arrays.asList("tag1", "tag2");
+    List<Attachment> attachments =
+        Collections.singletonList(Attachment.builder().id("att-1").taskId(taskId).build());
+
+    TaskDetail taskDetail =
+        TaskDetail.builder()
+            .id(taskId)
+            .title("Test Task")
+            .description("Test Description")
+            .tags(tags)
+            .attachments(attachments)
+            .build();
+
+    List<MultipartFile> files = List.of(mockFile);
+    String insertStatus = "SUCCESS";
+    IOException uploadException = new IOException("Upload failed");
+
+    // Mock transaction execution to actually execute the lambda
+    when(transactionTemplate.execute(any()))
+        .thenAnswer(
+            invocation -> {
+              // Get the lambda function passed to execute()
+              org.springframework.transaction.support.TransactionCallback<String> callback =
+                  invocation.getArgument(0);
+              // Execute the lambda and return the result
+              when(taskDao.createTask(any(Task.class))).thenReturn(insertStatus);
+              return callback.doInTransaction(null);
+            });
+
+    // Mock file upload failure
+    when(mockFile.isEmpty()).thenReturn(false);
+    when(fileStorageService.uploadFile(mockFile)).thenThrow(uploadException);
+    when(mockFile.getOriginalFilename()).thenReturn("test-file.txt");
+
+    // When
+    TaskerResponse<String> response = taskService.addTask(taskDetail, files);
+
+    // Then
+    verify(taskDao).createTask(any(Task.class));
+    verify(taskTagDao).createTaskTags(any());
+
+    // Verify response indicates partial success
+    assertNotNull(response);
+    assertEquals("PARTIAL_SUCCESS", response.getStatus());
+    assertEquals("Task created, but file attachment failed.", response.getMessage());
+    assertEquals(insertStatus, response.getData());
   }
 }
