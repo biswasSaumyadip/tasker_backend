@@ -12,6 +12,7 @@ import com.event.tasker.model.Task;
 import com.event.tasker.model.TaskDetail;
 import com.event.tasker.model.TaskTag;
 import com.event.tasker.model.TaskerResponse;
+import com.event.tasker.service.FileStorageService;
 import com.event.tasker.service.TaskService;
 
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class TaskServiceImpl implements TaskService {
   private final TaskDaoImpl taskDao;
   private final TaskAttachmentDao taskAttachmentDao;
   private final TaskTagDao taskTagDao;
+  private final FileStorageService fileStorageService;
 
   public ArrayList<Task> getTasks() {
     try {
