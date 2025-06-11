@@ -47,4 +47,4 @@ logging:
     org.springframework: INFO
 
 file:
-  upload-dir: /uploads
+  upload-dir: ./uploads
