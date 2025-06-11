@@ -5,7 +5,7 @@ echo "Running pre-commit checks..."
 
 # Format code and run all checks in parallel
 echo "Running all checks..."
-./gradlew.bat spotlessApply checkstyleMain checkstyleTest test jacocoTestCoverageVerification --parallel --daemon
+./gradlew spotlessApply checkstyleMain checkstyleTest test jacocoTestCoverageVerification --parallel --daemon
 
 # Store the result
 RESULT=$?
@@ -29,7 +29,7 @@ git diff --quiet || git add -u
 
 # Run checkstyle
 echo "Running Checkstyle..."
-./gradlew.bat checkstyleMain
+./gradlew checkstyleMain
 CHECKSTYLE_RESULT=$?
 
 # Return the status
