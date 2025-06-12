@@ -91,8 +91,8 @@ public class TaskController {
   @PostMapping(consumes = {"multipart/form-data"})
   public ResponseEntity<TaskerResponse<String>> createTask(
       @RequestPart TaskDetail task,
-      @RequestPart(value = "file", required = false) List<MultipartFile> file) {
-    return ResponseEntity.ok(taskService.addTask(task, file));
+      @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+    return ResponseEntity.ok(taskService.addTask(task, files));
   }
 
   @GetMapping("/{id}/start")

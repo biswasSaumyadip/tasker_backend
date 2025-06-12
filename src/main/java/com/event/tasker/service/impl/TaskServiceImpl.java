@@ -12,10 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.event.tasker.DAO.TaskAttachmentDao;
 import com.event.tasker.DAO.TaskTagDao;
 import com.event.tasker.DAO.impl.TaskDaoImpl;
-import com.event.tasker.model.Task;
-import com.event.tasker.model.TaskDetail;
-import com.event.tasker.model.TaskTag;
-import com.event.tasker.model.TaskerResponse;
+import com.event.tasker.model.*;
 import com.event.tasker.service.FileStorageService;
 import com.event.tasker.service.TaskService;
 
@@ -89,10 +86,7 @@ public class TaskServiceImpl implements TaskService {
       }
     }
 
-    return TaskerResponse.<String>builder()
-        .message("Task created, but file attachment failed.")
-        .status(taskStatus)
-        .build();
+    return TaskerResponse.<String>builder().message("Task created").status(taskStatus).build();
   }
 
   public void addAttachments(String taskId, List<MultipartFile> files) {
@@ -108,8 +102,10 @@ public class TaskServiceImpl implements TaskService {
       String uniqueFileName;
       try {
         uniqueFileName = fileStorageService.uploadFile(file);
-        taskAttachmentDao.createAttachment(fileStorageService.getFileMetadata(uniqueFileName));
-
+        Attachment attachment = fileStorageService.getFileMetadata(uniqueFileName);
+        attachment.setTaskId(taskId);
+        taskAttachmentDao.createAttachment(attachment);
+        // TODO: if db insertion fails then rollback file upload in background
       } catch (IOException e) {
         log.error(
             "Upload failed for one of the files for task {}. Rolling back this batch.", taskId, e);

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import com.event.tasker.DAO.TaskDao;
 import com.event.tasker.model.Task;
+import com.event.tasker.model.TaskDetail;
 import com.event.tasker.util.CSVToArrayConverter;
 
 import lombok.RequiredArgsConstructor;
@@ -140,5 +141,16 @@ public class TaskDaoImpl implements TaskDao {
           }
           return task;
         });
+  }
+
+  @Override
+  public boolean deleteTaskById(String taskId) {
+    String sql = "DELETE FROM tasks WHERE id = :taskId";
+    return false;
+  }
+
+  @Override
+  public TaskDetail getTaskDetail(String taskId) {
+    return null;
   }
 }

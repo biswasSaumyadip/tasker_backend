@@ -47,17 +47,17 @@ public class LocalFileStorageService implements FileStorageService {
 
   @Override
   public String uploadFile(MultipartFile file) throws IOException {
+    log.info("Uploading file {}", file.getOriginalFilename());
     String originalFileName =
         StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
 
     if (originalFileName.contains("..")) {
+      log.error("Invalid file name, please check relative path!");
       throw new IOException("Invalid file path sequence in filename: " + originalFileName);
     }
 
     String uniqueFileName = UUID.randomUUID() + "_" + originalFileName;
 
-    // Note: We now use the 'fileStorageLocation' field which is already an absolute, normalized
-    // path
     Path targetPath = this.fileStorageLocation.resolve(uniqueFileName);
 
     try (InputStream inputStream = file.getInputStream()) {
@@ -94,6 +94,7 @@ public class LocalFileStorageService implements FileStorageService {
       return Attachment.builder()
           .fileType(contentType)
           .fileName(fileId)
+          .id(UUID.randomUUID().toString())
           .url(resource.getURL().toString())
           .build();
     } catch (FileNotFoundException ex) {

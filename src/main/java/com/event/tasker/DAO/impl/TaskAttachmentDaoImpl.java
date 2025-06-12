@@ -29,7 +29,7 @@ public class TaskAttachmentDaoImpl implements TaskAttachmentDao {
     try {
       String SQL =
           """
-				INSERT INTO TASK_ATTACHMENTS (id, taskId, url, fileName, fileType)
+				INSERT INTO task_attachments (id, taskId, url, fileName, fileType)
 				VALUES (:id, :taskId, :url,
 								:fileName, :fileType)
 				""";
