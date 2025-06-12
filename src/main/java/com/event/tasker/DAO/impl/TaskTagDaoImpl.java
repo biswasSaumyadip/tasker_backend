@@ -30,7 +30,7 @@ public class TaskTagDaoImpl implements TaskTagDao {
     }
 
     String SQL = """
-				INSERT INTO TASK_TAGS (task_id, tag)
+				INSERT INTO task_tags (task_id, tag)
 				VALUES (:taskId, :name);
 				""";
 

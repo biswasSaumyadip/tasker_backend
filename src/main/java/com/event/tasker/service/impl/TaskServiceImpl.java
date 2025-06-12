@@ -44,16 +44,13 @@ public class TaskServiceImpl implements TaskService {
 
   @Override
   public TaskerResponse<String> addTask(TaskDetail task, List<MultipartFile> files) {
-    log.info("Adding task {}", task.getId());
-
     task.setId(UUID.randomUUID().toString());
+    log.info("Adding task {}", task.getId());
 
     ArrayList<TaskTag> taskTags = new ArrayList<>();
     for (String tag : task.getTags()) {
       taskTags.add(TaskTag.builder().taskId(task.getId()).name(tag).build());
     }
-
-    log.info("{} tags are ready to be inserted", taskTags.size());
 
     String taskStatus =
         transactionTemplate.execute(
@@ -72,6 +69,7 @@ public class TaskServiceImpl implements TaskService {
                           .build());
 
               taskTagDao.createTaskTags(taskTags);
+              log.info("{} tags are ready to be inserted", taskTags.size());
 
               return insertStatus;
             });
@@ -90,9 +88,11 @@ public class TaskServiceImpl implements TaskService {
         return response;
       }
     }
-    //    taskAttachmentDao.createAttachment();
 
-    return null;
+    return TaskerResponse.<String>builder()
+        .message("Task created, but file attachment failed.")
+        .status(taskStatus)
+        .build();
   }
 
   public void addAttachments(String taskId, List<MultipartFile> files) {

@@ -3,9 +3,8 @@ package com.event.tasker.DAO.impl;
 import java.util.ArrayList;
 
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 import com.event.tasker.DAO.TaskDao;
@@ -77,7 +76,16 @@ public class TaskDaoImpl implements TaskDao {
           		  :parentId);
           """;
 
-      SqlParameterSource parameterSource = new BeanPropertySqlParameterSource(task);
+      MapSqlParameterSource parameterSource =
+          new MapSqlParameterSource()
+              .addValue("id", task.getId())
+              .addValue("title", task.getTitle())
+              .addValue("description", task.getDescription())
+              .addValue("completed", task.isCompleted())
+              .addValue("priority", task.getPriority().name())
+              .addValue("dueDate", task.getDueDate())
+              .addValue("assignedTo", task.getAssignedTo())
+              .addValue("parentId", task.getParentId());
 
       int rowsAffected = jdbcTemplate.update(SQL, parameterSource);
 
