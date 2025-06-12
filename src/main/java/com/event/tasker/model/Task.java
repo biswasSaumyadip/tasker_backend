@@ -19,9 +19,11 @@ public class Task {
   private boolean completed;
 
   public enum Priority {
+    ALL,
     LOW,
     MEDIUM,
-    HIGH
+    HIGH,
+    URGENT
   }
 
   private Priority priority;

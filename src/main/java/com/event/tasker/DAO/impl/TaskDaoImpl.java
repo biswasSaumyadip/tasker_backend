@@ -73,7 +73,7 @@ public class TaskDaoImpl implements TaskDao {
           """
           INSERT INTO tasks
           (id, title, description, completed, priority, due_date, assigned_to, parent_id)
-          VALUES (:id, :title, :description, :completed, :priority, :dueDate, :assigned_to,
+          VALUES (:id, :title, :description, :completed, :priority, :dueDate, :assignedTo,
           		  :parentId);
           """;
 

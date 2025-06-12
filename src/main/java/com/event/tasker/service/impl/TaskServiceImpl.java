@@ -3,6 +3,7 @@ package com.event.tasker.service.impl;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -45,15 +46,7 @@ public class TaskServiceImpl implements TaskService {
   public TaskerResponse<String> addTask(TaskDetail task, List<MultipartFile> files) {
     log.info("Adding task {}", task.getId());
 
-    // First file gets upload
-    // in case if upload fails, user should get message of failure
-    // if failed then gets prompt whether to proceed and upload later or try again or cancel task
-    // creation
-    //
-
-    log.info("Task {} added", task.getId());
-
-    log.info("Task tags {}", task.getTags());
+    task.setId(UUID.randomUUID().toString());
 
     ArrayList<TaskTag> taskTags = new ArrayList<>();
     for (String tag : task.getTags()) {
