@@ -50,7 +50,7 @@ public class UiOptionDaoTest {
     when(rs.getString("label")).thenReturn("label", "label2");
     when(rs.getString("value")).thenReturn("value", "value2");
 
-    when(jdbcTemplate.query(anyString(), any(ResultSetExtractor.class)))
+    when(jdbcTemplate.query(anyString(), any(ResultSetExtractor.class), any()))
         .thenAnswer(
             invocationOnMock -> {
               ResultSetExtractor<ArrayList<UiOption>> resultSetExtractor =
@@ -65,19 +65,19 @@ public class UiOptionDaoTest {
     assertNotNull(result, "Result should not be null");
     assertNotNull(result.get(0), "Result should not be null");
     assertEquals(result.size(), 2, "Result should have 2 options");
-    verify(jdbcTemplate).query(anyString(), any(ResultSetExtractor.class));
+    verify(jdbcTemplate).query(anyString(), any(ResultSetExtractor.class), any());
   }
 
   @Test
   @DisplayName("Unit Test: getPriorityLabels should throw exception and handle gracefully")
   void testGetPriorityLabelsShouldThrowExceptionAndHandleGracefully() {
-    when(jdbcTemplate.query(anyString(), any(ResultSetExtractor.class)))
+    when(jdbcTemplate.query(anyString(), any(ResultSetExtractor.class), any()))
         .thenThrow(new DataAccessException("Simulated DB error") {});
 
     RuntimeException exception =
         assertThrows(DataAccessException.class, () -> uiOptionDao.getPriorityLabels("1"));
 
     assertTrue(exception.getMessage().contains("Error retrieving priority labels"));
-    verify(jdbcTemplate).query(anyString(), any(ResultSetExtractor.class));
+    verify(jdbcTemplate).query(anyString(), any(ResultSetExtractor.class), any());
   }
 }

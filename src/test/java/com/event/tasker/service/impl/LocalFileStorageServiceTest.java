@@ -39,8 +39,8 @@ class LocalFileStorageServiceTest {
 
   @BeforeEach
   void setUp() {
-    // Set the upload directory to our temporary directory
     ReflectionTestUtils.setField(fileStorageService, "uploadDir", tempDir.toString());
+    fileStorageService.init();
   }
 
   @Test

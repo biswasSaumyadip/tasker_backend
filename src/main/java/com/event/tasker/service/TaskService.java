@@ -15,4 +15,8 @@ public interface TaskService {
   TaskerResponse<String> addTask(TaskDetail task, List<MultipartFile> files);
 
   void addAttachments(String taskId, List<MultipartFile> files);
+
+  TaskerResponse<String> deleteTask(String taskId);
+
+  TaskerResponse<String> getTaskBy(String taskId);
 }

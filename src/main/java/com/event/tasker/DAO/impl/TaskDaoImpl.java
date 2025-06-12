@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 import com.event.tasker.DAO.TaskDao;
@@ -97,5 +98,47 @@ public class TaskDaoImpl implements TaskDao {
       log.error("Error creating task", e);
       throw new RuntimeException(e.getMessage());
     }
+  }
+
+  @Override
+  public Task getTask(String taskId) {
+    String sql =
+        "SELECT t.*,\n"
+            + "       CONCAT(u.first_name, ' ', u.last_name) AS assignedTo,\n"
+            + "       t.created_at                           AS createdAt,\n"
+            + "       t.due_date                             AS dueDate,\n"
+            + "       u.profile_picture_url                  AS profilePicture, \n"
+            + "       parent_id                              AS parentID,\n"
+            + "       GROUP_CONCAT(tt.tag)                   AS tags\n"
+            + "FROM tasks t\n"
+            + "     LEFT JOIN task_tags tt ON t.id = tt.task_id\n"
+            + "     LEFT JOIN users u ON u.user_id = t.assigned_to\n"
+            + "WHERE t.id = :taskId\n "
+            + "GROUP BY t.id, u.first_name, u.last_name";
+
+    SqlParameterSource parameters = new MapSqlParameterSource("taskId", taskId);
+
+    return jdbcTemplate.query(
+        sql,
+        parameters,
+        resultset -> {
+          Task task = new Task();
+          while (resultset.next()) {
+            task =
+                Task.builder()
+                    .id(resultset.getString("id"))
+                    .assignedTo(resultset.getString("assignedTo"))
+                    .title(resultset.getString("title"))
+                    .createdAt(resultset.getTimestamp("createdAt").toInstant())
+                    .dueDate(resultset.getTimestamp("dueDate").toInstant())
+                    .profilePicture(resultset.getString("profilePicture"))
+                    .parentId(resultset.getString("parentId"))
+                    .tags(
+                        CSVToArrayConverter.convertCommaSeparated(
+                            resultset.getString("tags"), String::trim))
+                    .build();
+          }
+          return task;
+        });
   }
 }

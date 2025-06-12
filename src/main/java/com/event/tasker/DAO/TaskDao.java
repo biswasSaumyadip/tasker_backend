@@ -8,4 +8,6 @@ public interface TaskDao {
   ArrayList<Task> getTasks();
 
   String createTask(Task task);
+
+  Task getTask(String taskId);
 }

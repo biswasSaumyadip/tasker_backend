@@ -117,4 +117,18 @@ public class TaskServiceImpl implements TaskService {
       }
     }
   }
+
+  @Override
+  public TaskerResponse<String> deleteTask(String taskId) {
+    // should delete the task from database
+    // should delete the file if it was uploaded then it should be deleted also
+    // need to retrieve the data first then if attachment exist delete them
+
+    return null;
+  }
+
+  @Override
+  public TaskerResponse<String> getTaskBy(String taskId) {
+    return null;
+  }
 }

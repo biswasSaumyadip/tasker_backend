@@ -49,3 +49,6 @@ springdoc:
     path: /swagger-ui.html
     operations-sorter: method
   packages-to-scan: com.event.tasker.controller
+
+file:
+  upload-dir: ./uploads
