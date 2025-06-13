@@ -37,6 +37,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import com.event.tasker.model.Task;
+import com.event.tasker.rowMapper.TaskRowMapper;
 import com.event.tasker.util.CSVToArrayConverter;
 
 @ExtendWith(MockitoExtension.class)
@@ -79,91 +80,87 @@ class TaskDaoImplTest {
   @DisplayName("Unit Test: Get tasks returns multiple tasks successfully")
   void testGetTasksReturnsMultipleTasks() throws SQLException {
     // Given
-    ResultSet mockResultSet = mock(ResultSet.class);
     Instant now = Instant.now();
     Timestamp timestamp = Timestamp.from(now);
 
-    // Mock result set behavior for two rows
-    when(mockResultSet.next()).thenReturn(true, true, false);
+    Task sampleTask1 =
+        Task.builder()
+            .id("1")
+            .title("Task 1")
+            .description("Description 1")
+            .completed(false)
+            .createdAt(timestamp.toInstant())
+            .dueDate(timestamp.toInstant())
+            .assignedTo("user1")
+            .parentId(null)
+            .tags(Arrays.asList("tag1", "tag2"))
+            .priority(Task.Priority.HIGH)
+            .profilePicture("profilePictureUrl")
+            .build();
 
-    // Task 1 data
-    when(mockResultSet.getString("id")).thenReturn("1", "2");
-    when(mockResultSet.getString("title")).thenReturn("Task 1", "Task 2");
-    when(mockResultSet.getString("description")).thenReturn("Description 1", "Description 2");
-    when(mockResultSet.getBoolean("completed")).thenReturn(false, true);
-    when(mockResultSet.getTimestamp("createdAt")).thenReturn(timestamp, timestamp);
-    when(mockResultSet.getTimestamp("dueDate")).thenReturn(timestamp, timestamp);
-    when(mockResultSet.getString("assignedTo")).thenReturn("user1", "user2");
-    when(mockResultSet.getString("parentId")).thenReturn(null, "1");
-    when(mockResultSet.getString("tags")).thenReturn("tag1,tag2", "tag3");
-    when(mockResultSet.getString("priority")).thenReturn("HIGH", "LOW");
-    when(mockResultSet.getString("profilePicture")).thenReturn("profilePictureUrl", null);
+    Task sampleTask2 =
+        Task.builder()
+            .id("2")
+            .title("Task 2")
+            .description("Description 2")
+            .completed(true)
+            .createdAt(timestamp.toInstant())
+            .dueDate(timestamp.toInstant())
+            .assignedTo("user2")
+            .parentId("1")
+            .tags(Arrays.asList("tag3"))
+            .priority(Task.Priority.LOW)
+            .profilePicture(null)
+            .build();
+    List<Task> mockResult = Arrays.asList(sampleTask1, sampleTask2);
 
-    // Mock jdbcTemplate behavior
-    mockJdbcTemplateQuery(mockResultSet);
+    when(jdbcTemplate.query(anyString(), any(TaskRowMapper.class))).thenReturn(mockResult);
 
-    // Mock CSVToArrayConverter
-    try (MockedStatic<CSVToArrayConverter> mockedConverter =
-        Mockito.mockStatic(CSVToArrayConverter.class)) {
-      mockedConverter
-          .when(() -> CSVToArrayConverter.convertCommaSeparated(eq("tag1,tag2"), any()))
-          .thenReturn(Arrays.asList("tag1", "tag2"));
-      mockedConverter
-          .when(() -> CSVToArrayConverter.convertCommaSeparated(eq("tag3"), any()))
-          .thenReturn(List.of("tag3"));
+    // When
+    ArrayList<Task> tasks = taskDao.getTasks();
 
-      // When
-      ArrayList<Task> tasks = taskDao.getTasks();
+    // Then
+    assertNotNull(tasks, "Tasks list should not be null");
+    assertEquals(2, tasks.size(), "Should return 2 tasks");
 
-      // Then
-      assertNotNull(tasks, "Tasks list should not be null");
-      assertEquals(2, tasks.size(), "Should return 2 tasks");
+    // Verify first task
+    Task task1 = tasks.get(0);
+    assertEquals("1", task1.getId(), "First task ID should match");
+    assertEquals("Task 1", task1.getTitle(), "First task title should match");
+    assertEquals("Description 1", task1.getDescription(), "First task description should match");
+    assertFalse(task1.isCompleted(), "First task should not be completed");
+    assertEquals(now, task1.getCreatedAt(), "First task creation time should match");
+    assertEquals(now, task1.getDueDate(), "First task due date should match");
+    assertEquals("user1", task1.getAssignedTo(), "First task assignee should match");
+    assertNull(task1.getParentId(), "First task should not have a parent");
+    assertEquals(Task.Priority.HIGH, task1.getPriority(), "First task priority should be HIGH");
+    assertEquals(Arrays.asList("tag1", "tag2"), task1.getTags(), "First task tags should match");
+    assertEquals(
+        "profilePictureUrl", task1.getProfilePicture(), "First task profile picture should match");
 
-      // Verify first task
-      Task task1 = tasks.get(0);
-      assertEquals("1", task1.getId(), "First task ID should match");
-      assertEquals("Task 1", task1.getTitle(), "First task title should match");
-      assertEquals("Description 1", task1.getDescription(), "First task description should match");
-      assertFalse(task1.isCompleted(), "First task should not be completed");
-      assertEquals(now, task1.getCreatedAt(), "First task creation time should match");
-      assertEquals(now, task1.getDueDate(), "First task due date should match");
-      assertEquals("user1", task1.getAssignedTo(), "First task assignee should match");
-      assertNull(task1.getParentId(), "First task should not have a parent");
-      assertEquals(Task.Priority.HIGH, task1.getPriority(), "First task priority should be HIGH");
-      assertEquals(Arrays.asList("tag1", "tag2"), task1.getTags(), "First task tags should match");
-      assertEquals(
-          "profilePictureUrl",
-          task1.getProfilePicture(),
-          "First task profile picture should match");
+    // Verify second task
+    Task task2 = tasks.get(1);
+    assertEquals("2", task2.getId(), "Second task ID should match");
+    assertEquals("Task 2", task2.getTitle(), "Second task title should match");
+    assertEquals("Description 2", task2.getDescription(), "Second task description should match");
+    assertTrue(task2.isCompleted(), "Second task should be completed");
+    assertEquals(now, task2.getCreatedAt(), "Second task creation time should match");
+    assertEquals(now, task2.getDueDate(), "Second task due date should match");
+    assertEquals("user2", task2.getAssignedTo(), "Second task assignee should match");
+    assertEquals("1", task2.getParentId(), "Second task should have parent ID 1");
+    assertEquals(Task.Priority.LOW, task2.getPriority(), "Second task priority should be LOW");
+    assertEquals(List.of("tag3"), task2.getTags(), "Second task tags should match");
+    assertNull(task2.getProfilePicture(), "Second task profile picture should be null");
 
-      // Verify second task
-      Task task2 = tasks.get(1);
-      assertEquals("2", task2.getId(), "Second task ID should match");
-      assertEquals("Task 2", task2.getTitle(), "Second task title should match");
-      assertEquals("Description 2", task2.getDescription(), "Second task description should match");
-      assertTrue(task2.isCompleted(), "Second task should be completed");
-      assertEquals(now, task2.getCreatedAt(), "Second task creation time should match");
-      assertEquals(now, task2.getDueDate(), "Second task due date should match");
-      assertEquals("user2", task2.getAssignedTo(), "Second task assignee should match");
-      assertEquals("1", task2.getParentId(), "Second task should have parent ID 1");
-      assertEquals(Task.Priority.LOW, task2.getPriority(), "Second task priority should be LOW");
-      assertEquals(List.of("tag3"), task2.getTags(), "Second task tags should match");
-      assertNull(task2.getProfilePicture(), "Second task profile picture should be null");
-
-      // Verify jdbcTemplate was called with correct SQL
-      verify(jdbcTemplate).query(eq(EXPECTED_SQL), any(ResultSetExtractor.class));
-    }
+    // Verify jdbcTemplate was called with correct SQL
+    verify(jdbcTemplate).query(anyString(), any(TaskRowMapper.class));
   }
 
   @Test
   @DisplayName("Unit Test: Get tasks returns empty list when no tasks exist")
-  void testGetTasksReturnsEmptyList() throws SQLException {
+  void testGetTasksReturnsEmptyList() {
     // Given
-    ResultSet mockResultSet = mock(ResultSet.class);
-    when(mockResultSet.next()).thenReturn(false); // No rows
-
-    // Mock jdbcTemplate behavior
-    mockJdbcTemplateQuery(mockResultSet);
+    when(jdbcTemplate.query(anyString(), any(TaskRowMapper.class))).thenReturn(new ArrayList<>());
 
     // When
     ArrayList<Task> tasks = taskDao.getTasks();
@@ -172,30 +169,26 @@ class TaskDaoImplTest {
     assertNotNull(tasks, "Tasks list should not be null even when empty");
     assertTrue(tasks.isEmpty(), "Tasks list should be empty");
 
-    // Verify jdbcTemplate was called with correct SQL
-    verify(jdbcTemplate).query(eq(EXPECTED_SQL), any(ResultSetExtractor.class));
+    verify(jdbcTemplate).query(anyString(), any(TaskRowMapper.class));
   }
 
   @Test
   @DisplayName("Unit Test: Get tasks throws SQLException when database error occurs")
   void testGetTasksThrowsSQLException() throws SQLException {
     // Given
-    ResultSet mockResultSet = mock(ResultSet.class);
-    when(mockResultSet.next()).thenThrow(new SQLException("Database error"));
-
-    // Mock jdbcTemplate behavior
-    mockJdbcTemplateQuery(mockResultSet);
+    when(jdbcTemplate.query(anyString(), any(TaskRowMapper.class)))
+        .thenThrow(new DataAccessException("Database error") {});
 
     // When/Then
-    SQLException exception =
+    DataAccessException exception =
         assertThrows(
-            SQLException.class,
+            DataAccessException.class,
             () -> taskDao.getTasks(),
             "Should throw SQLException when database error occurs");
     assertEquals("Database error", exception.getMessage(), "Exception message should match");
 
     // Verify jdbcTemplate was called with correct SQL
-    verify(jdbcTemplate).query(eq(EXPECTED_SQL), any(ResultSetExtractor.class));
+    verify(jdbcTemplate).query(anyString(), any(TaskRowMapper.class));
   }
 
   /** Helper method to set up common jdbcTemplate mocking behavior */
