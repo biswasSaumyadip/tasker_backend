@@ -76,6 +76,26 @@ public class TaskAttachmentDaoImpl implements TaskAttachmentDao {
 
   @Override
   public String updateAttachment(Attachment attachment) {
-    return "";
+    try {
+      String sql =
+          """
+          UPDATE task_attachments
+          SET url      = :url,
+              fileName = :fileName,
+              fileType = :fileType
+          WHERE taskId = :taskId
+          """;
+
+      MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+      parameterSource.addValue("url", attachment.getUrl());
+      parameterSource.addValue("fileName", attachment.getFileName());
+      parameterSource.addValue("fileType", attachment.getFileType());
+      parameterSource.addValue("taskId", attachment.getTaskId());
+
+      return jdbcTemplate.update(sql, parameterSource) >= 1 ? attachment.getId() : null;
+    } catch (DataAccessException e) {
+      log.error("Error updating attachment", e);
+      throw e;
+    }
   }
 }

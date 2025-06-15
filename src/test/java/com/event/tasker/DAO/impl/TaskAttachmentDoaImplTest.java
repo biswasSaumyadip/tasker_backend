@@ -1,6 +1,7 @@
 package com.event.tasker.DAO.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -202,5 +203,91 @@ public class TaskAttachmentDoaImplTest {
     verify(jdbcTemplate)
         .queryForObject(
             anyString(), any(MapSqlParameterSource.class), any(AttachmentRowMapper.class));
+  }
+
+  @Test
+  @DisplayName("Unit Test: updateAttachment should return ID on successful update")
+  void testUpdateAttachment_Success() {
+    // Arrange
+    Attachment attachment =
+        Attachment.builder()
+            .id("att-123")
+            .taskId("task-abc")
+            .url("https://example.com/new_document.docx")
+            .fileName("new_document.docx")
+            .fileType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            .build();
+
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+    // Act
+    String resultId = taskDao.updateAttachment(attachment);
+
+    // Assert
+    assertNotNull(resultId, "Result ID should not be null on successful update");
+    assertEquals(attachment.getId(), resultId, "Returned ID should match the attachment's ID");
+
+    ArgumentCaptor<MapSqlParameterSource> paramCaptor =
+        ArgumentCaptor.forClass(MapSqlParameterSource.class);
+    verify(jdbcTemplate).update(anyString(), paramCaptor.capture());
+
+    MapSqlParameterSource capturedParams = paramCaptor.getValue();
+    assertEquals(attachment.getUrl(), capturedParams.getValue("url"));
+    assertEquals(attachment.getFileName(), capturedParams.getValue("fileName"));
+    assertEquals(attachment.getFileType(), capturedParams.getValue("fileType"));
+    assertEquals(attachment.getTaskId(), capturedParams.getValue("taskId"));
+  }
+
+  @Test
+  @DisplayName("Unit Test: updateAttachment should return null when no row is updated")
+  void testUpdateAttachment_NotFound() {
+    // Arrange
+    Attachment attachment =
+        Attachment.builder()
+            .id("att-456")
+            .taskId("task-def-non-existent")
+            .url("https://example.com/some_file.zip")
+            .fileName("some_file.zip")
+            .fileType("application/zip")
+            .build();
+
+    // Simulate that no rows were affected by the update
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(0);
+
+    // Act
+    String resultId = taskDao.updateAttachment(attachment);
+
+    // Assert
+    assertNull(resultId, "Should return null when no attachment is found to update");
+    verify(jdbcTemplate).update(anyString(), any(MapSqlParameterSource.class));
+  }
+
+  @Test
+  @DisplayName("Unit Test: updateAttachment should throw DataAccessException on DB error")
+  void testUpdateAttachment_DataAccessException() {
+    // Arrange
+    Attachment attachment =
+        Attachment.builder()
+            .id("att-789")
+            .taskId("task-ghi")
+            .url("https://example.com/report.csv")
+            .fileName("report.csv")
+            .fileType("text/csv")
+            .build();
+
+    DataAccessException dbException = new DataAccessException("Simulated DB Error") {};
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenThrow(dbException);
+
+    // Act & Assert
+    DataAccessException thrown =
+        assertThrows(
+            DataAccessException.class,
+            () -> {
+              taskDao.updateAttachment(attachment);
+            },
+            "Should re-throw DataAccessException on database error");
+
+    assertEquals(dbException, thrown, "The thrown exception should be the one from the mock");
+    verify(jdbcTemplate).update(anyString(), any(MapSqlParameterSource.class));
   }
 }
