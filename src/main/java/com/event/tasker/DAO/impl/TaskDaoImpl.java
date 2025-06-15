@@ -1,7 +1,6 @@
 package com.event.tasker.DAO.impl;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.dao.DataAccessException;
@@ -12,14 +11,11 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 import com.event.tasker.DAO.TaskDao;
-import com.event.tasker.model.Attachment;
 import com.event.tasker.model.Task;
 import com.event.tasker.model.TaskDetail;
+import com.event.tasker.rowMapper.TaskDetailRowMapper;
 import com.event.tasker.rowMapper.TaskRowMapper;
-import com.event.tasker.util.CSVToArrayConverter;
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -146,7 +142,7 @@ public class TaskDaoImpl implements TaskDao {
   }
 
   @Override
-  public TaskDetail getTaskDetail(String taskId) {
+  public Optional<TaskDetail> getTaskDetail(String taskId) {
     String sql =
         """
             SELECT t.id                                                     AS id,
@@ -182,45 +178,11 @@ public class TaskDaoImpl implements TaskDao {
     MapSqlParameterSource parameters = new MapSqlParameterSource("taskId", taskId);
 
     try {
-      return jdbcTemplate.query(
-          sql,
-          parameters,
-          resultSet -> {
-            TaskDetail taskDetail = new TaskDetail();
-            while (resultSet.next()) {
-              String attachmentString = resultSet.getString("attachments");
-              JsonArray attachmentJson = gson.fromJson(attachmentString, JsonArray.class);
-              List<Attachment> attachments = new ArrayList<>();
-
-              for (JsonElement jsonElement : attachmentJson) {
-                attachments.add(gson.fromJson(jsonElement, Attachment.class));
-              }
-
-              taskDetail =
-                  TaskDetail.builder()
-                      .id(resultSet.getString("id"))
-                      .assignedTo(resultSet.getString("assignedTo"))
-                      .title(resultSet.getString("title"))
-                      .description(resultSet.getString("description"))
-                      .completed(resultSet.getBoolean("completed"))
-                      .priority(Task.Priority.valueOf(resultSet.getString("priority")))
-                      .dueDate(resultSet.getTimestamp("dueDate").toInstant())
-                      .parentId(resultSet.getString("parentId"))
-                      .tags(
-                          CSVToArrayConverter.convertCommaSeparated(
-                              resultSet.getString("tags"), String::trim))
-                      .attachments(attachments)
-                      .build();
-            }
-
-            return taskDetail;
-          });
-    } catch (DataAccessException e) {
-      log.error("Error getting task detail", e);
-      throw e;
+      return Optional.ofNullable(
+          jdbcTemplate.queryForObject(sql, parameters, new TaskDetailRowMapper(gson)));
     } catch (Exception e) {
       log.error("Error getting task detail", e);
-      throw new RuntimeException(e.getMessage());
+      return Optional.empty();
     }
   }
 }

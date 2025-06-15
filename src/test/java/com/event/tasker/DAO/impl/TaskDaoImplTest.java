@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,7 +34,10 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
+import com.event.tasker.model.Attachment;
 import com.event.tasker.model.Task;
+import com.event.tasker.model.TaskDetail;
+import com.event.tasker.rowMapper.TaskDetailRowMapper;
 import com.event.tasker.rowMapper.TaskRowMapper;
 import com.event.tasker.util.CSVToArrayConverter;
 
@@ -358,5 +362,82 @@ class TaskDaoImplTest {
             "Should throw DataAccessException on DB error");
 
     assertEquals(dataAccessException, thrown, "Thrown exception should match the mock");
+  }
+
+  @Test
+  @DisplayName("Should return task detail if found")
+  void testGetTaskDetail_HappyPath() {
+    // --- Arrange ---
+
+    final String taskId = "task-123";
+
+    TaskDetail mockTask =
+        TaskDetail.builder()
+            .id(taskId)
+            .title("Test Task")
+            .description("Description")
+            .completed(false)
+            .priority(Task.Priority.HIGH)
+            .assignedTo("Alice Bob")
+            .dueDate(Instant.now())
+            .parentId("parent-1")
+            .tags(List.of("java", "spring"))
+            .attachments(List.of(Attachment.builder().fileName("file.pdf").build()))
+            .build();
+
+    when(jdbcTemplate.queryForObject(
+            anyString(), any(MapSqlParameterSource.class), any(TaskDetailRowMapper.class)))
+        .thenReturn(mockTask);
+
+    // --- Act ---
+    Optional<TaskDetail> result = taskDao.getTaskDetail(taskId);
+
+    // --- Assert ---
+    assertTrue(result.isPresent());
+    assertEquals(taskId, result.get().getId());
+    assertEquals("Test Task", result.get().getTitle());
+    assertEquals("Alice Bob", result.get().getAssignedTo());
+
+    // Verify SQL executed with correct params
+    ArgumentCaptor<MapSqlParameterSource> paramCaptor =
+        ArgumentCaptor.forClass(MapSqlParameterSource.class);
+    verify(jdbcTemplate)
+        .queryForObject(anyString(), paramCaptor.capture(), any(TaskDetailRowMapper.class));
+    assertEquals(taskId, paramCaptor.getValue().getValue("taskId"));
+  }
+
+  @Test
+  @DisplayName("Should return empty optional when task not found")
+  void testGetTaskDetail_NotFound() {
+    // --- Arrange ---
+    final String taskId = "task-123";
+    when(jdbcTemplate.queryForObject(
+            anyString(), any(MapSqlParameterSource.class), any(TaskDetailRowMapper.class)))
+        .thenThrow(new RuntimeException("No result"));
+
+    // --- Act ---
+    Optional<TaskDetail> result = taskDao.getTaskDetail(taskId);
+
+    // --- Assert ---
+    assertTrue(result.isEmpty(), "Expected result to be empty when exception occurs.");
+    verify(jdbcTemplate)
+        .queryForObject(
+            anyString(), any(MapSqlParameterSource.class), any(TaskDetailRowMapper.class));
+  }
+
+  @Test
+  @DisplayName("Should handle null return from queryForObject safely")
+  void testGetTaskDetail_NullReturn() {
+    // --- Arrange ---
+    final String taskId = "task-123";
+    when(jdbcTemplate.queryForObject(
+            anyString(), any(MapSqlParameterSource.class), any(TaskDetailRowMapper.class)))
+        .thenReturn(null);
+
+    // --- Act ---
+    Optional<TaskDetail> result = taskDao.getTaskDetail(taskId);
+
+    // --- Assert ---
+    assertTrue(result.isEmpty());
   }
 }

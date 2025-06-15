@@ -15,5 +15,5 @@ public interface TaskDao {
 
   boolean softDeleteTaskById(String taskId);
 
-  TaskDetail getTaskDetail(String taskId);
+  Optional<TaskDetail> getTaskDetail(String taskId);
 }
