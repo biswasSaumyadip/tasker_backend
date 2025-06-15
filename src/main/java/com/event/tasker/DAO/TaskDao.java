@@ -1,6 +1,7 @@
 package com.event.tasker.DAO;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 import com.event.tasker.model.Task;
 import com.event.tasker.model.TaskDetail;
@@ -10,9 +11,9 @@ public interface TaskDao {
 
   String createTask(Task task);
 
-  Task getTask(String taskId);
+  Optional<Task> getTask(String taskId);
 
-  boolean deleteTaskById(String taskId);
+  boolean softDeleteTaskById(String taskId);
 
   TaskDetail getTaskDetail(String taskId);
 }

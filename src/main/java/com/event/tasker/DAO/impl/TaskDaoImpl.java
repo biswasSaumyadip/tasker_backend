@@ -2,8 +2,10 @@ package com.event.tasker.DAO.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -101,51 +103,46 @@ public class TaskDaoImpl implements TaskDao {
   }
 
   @Override
-  public Task getTask(String taskId) {
-    String sql =
-        "SELECT t.*,\n"
-            + "       CONCAT(u.first_name, ' ', u.last_name) AS assignedTo,\n"
-            + "       t.created_at                           AS createdAt,\n"
-            + "       t.due_date                             AS dueDate,\n"
-            + "       u.profile_picture_url                  AS profilePicture, \n"
-            + "       parent_id                              AS parentID,\n"
-            + "       GROUP_CONCAT(tt.tag)                   AS tags\n"
-            + "FROM tasks t\n"
-            + "     LEFT JOIN task_tags tt ON t.id = tt.task_id\n"
-            + "     LEFT JOIN users u ON u.user_id = t.assigned_to\n"
-            + "WHERE t.id = :taskId\n "
-            + "GROUP BY t.id, u.first_name, u.last_name";
+  public Optional<Task> getTask(String taskId) {
+    final String sql = TASK_BASE_SELECT + " AND t.id = :taskId" + TASK_GROUP_BY;
 
     SqlParameterSource parameters = new MapSqlParameterSource("taskId", taskId);
 
-    return jdbcTemplate.query(
-        sql,
-        parameters,
-        resultset -> {
-          Task task = new Task();
-          while (resultset.next()) {
-            task =
-                Task.builder()
-                    .id(resultset.getString("id"))
-                    .assignedTo(resultset.getString("assignedTo"))
-                    .title(resultset.getString("title"))
-                    .createdAt(resultset.getTimestamp("createdAt").toInstant())
-                    .dueDate(resultset.getTimestamp("dueDate").toInstant())
-                    .profilePicture(resultset.getString("profilePicture"))
-                    .parentId(resultset.getString("parentId"))
-                    .tags(
-                        CSVToArrayConverter.convertCommaSeparated(
-                            resultset.getString("tags"), String::trim))
-                    .build();
-          }
-          return task;
-        });
+    try {
+      Task task = jdbcTemplate.queryForObject(sql, parameters, new TaskRowMapper());
+      return Optional.ofNullable(task);
+    } catch (EmptyResultDataAccessException e) {
+      log.warn("No task found with id: {}", taskId);
+      return Optional.empty();
+    } catch (DataAccessException e) {
+      log.error("Error getting task", e);
+      throw new RuntimeException(e.getMessage());
+    }
   }
 
+  /**
+   * Soft deletes a task by setting its 'deleted_at' timestamp to the current time. The record
+   * remains in the database but is treated as inactive.
+   *
+   * @param taskId The ID of the task to delete.
+   * @return true if the task was successfully deleted.
+   */
   @Override
-  public boolean deleteTaskById(String taskId) {
-    String sql = "DELETE FROM tasks WHERE id = :taskId";
-    return false;
+  public boolean softDeleteTaskById(String taskId) {
+    final String sql =
+        """
+            UPDATE tasks SET deletedAt = NOW(), isDeleted = 1
+            WHERE id = :taskId AND deletedAt IS NULL
+           """;
+    MapSqlParameterSource params = new MapSqlParameterSource("taskId", taskId);
+
+    try {
+      int rowsAffected = jdbcTemplate.update(sql, params);
+      return rowsAffected > 0;
+    } catch (DataAccessException e) {
+      log.error("Error during soft delete for task id: {}", taskId, e);
+      throw e;
+    }
   }
 
   @Override

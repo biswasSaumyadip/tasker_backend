@@ -8,18 +8,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -28,11 +25,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -44,18 +39,6 @@ import com.event.tasker.util.CSVToArrayConverter;
 @DisplayName("Unit Test: TaskDaoImpl")
 class TaskDaoImplTest {
 
-  private static final String EXPECTED_SQL =
-      "SELECT t.*,\n"
-          + "       CONCAT(u.first_name, ' ', u.last_name) AS assignedTo,\n"
-          + "       t.created_at                           AS createdAt,\n"
-          + "       t.due_date                             AS dueDate,\n"
-          + "       u.profile_picture_url                  AS profilePicture, \n"
-          + "       parent_id                              AS parentID,\n"
-          + "       GROUP_CONCAT(tt.tag)                   AS tags\n"
-          + "FROM tasks t\n"
-          + "     LEFT JOIN task_tags tt ON t.id = tt.task_id\n"
-          + "     LEFT JOIN users u ON u.user_id = t.assigned_to\n"
-          + "GROUP BY t.id, u.first_name, u.last_name";
   private Task sampleTask;
   @Mock private NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -78,7 +61,7 @@ class TaskDaoImplTest {
 
   @Test
   @DisplayName("Unit Test: Get tasks returns multiple tasks successfully")
-  void testGetTasksReturnsMultipleTasks() throws SQLException {
+  void testGetTasksReturnsMultipleTasks() {
     // Given
     Instant now = Instant.now();
     Timestamp timestamp = Timestamp.from(now);
@@ -108,7 +91,7 @@ class TaskDaoImplTest {
             .dueDate(timestamp.toInstant())
             .assignedTo("user2")
             .parentId("1")
-            .tags(Arrays.asList("tag3"))
+            .tags(List.of("tag3"))
             .priority(Task.Priority.LOW)
             .profilePicture(null)
             .build();
@@ -124,7 +107,7 @@ class TaskDaoImplTest {
     assertEquals(2, tasks.size(), "Should return 2 tasks");
 
     // Verify first task
-    Task task1 = tasks.get(0);
+    Task task1 = tasks.getFirst();
     assertEquals("1", task1.getId(), "First task ID should match");
     assertEquals("Task 1", task1.getTitle(), "First task title should match");
     assertEquals("Description 1", task1.getDescription(), "First task description should match");
@@ -174,7 +157,7 @@ class TaskDaoImplTest {
 
   @Test
   @DisplayName("Unit Test: Get tasks throws SQLException when database error occurs")
-  void testGetTasksThrowsSQLException() throws SQLException {
+  void testGetTasksThrowsSQLException() {
     // Given
     when(jdbcTemplate.query(anyString(), any(TaskRowMapper.class)))
         .thenThrow(new DataAccessException("Database error") {});
@@ -189,16 +172,6 @@ class TaskDaoImplTest {
 
     // Verify jdbcTemplate was called with correct SQL
     verify(jdbcTemplate).query(anyString(), any(TaskRowMapper.class));
-  }
-
-  /** Helper method to set up common jdbcTemplate mocking behavior */
-  void mockJdbcTemplateQuery(ResultSet mockResultSet) {
-    when(jdbcTemplate.query(eq(EXPECTED_SQL), any(ResultSetExtractor.class)))
-        .thenAnswer(
-            invocation -> {
-              ResultSetExtractor<ArrayList<Task>> extractor = invocation.getArgument(1);
-              return extractor.extractData(mockResultSet);
-            });
   }
 
   @Test
@@ -257,90 +230,68 @@ class TaskDaoImplTest {
     verify(jdbcTemplate).update(anyString(), any(SqlParameterSource.class));
   }
 
-  // Keep the helper method, but we'll use it with a more precise mock
-  private void mockJdbcTemplateGetTask(ResultSet mockResultSet) {
-    when(jdbcTemplate.query(
-            anyString(), any(SqlParameterSource.class), any(ResultSetExtractor.class)))
-        .thenAnswer(
-            invocation -> {
-              ResultSetExtractor<Task> extractor = invocation.getArgument(2);
-              return extractor.extractData(mockResultSet);
-            });
-  }
-
   @Test
   @DisplayName("Unit Test: getTask should return a populated Task when found")
-  void testGetTaskSuccess() throws SQLException {
+  void testGetTaskSuccess() {
     // Arrange
     String taskId = "task-123";
     Instant now = Instant.now();
     Timestamp timestamp = Timestamp.from(now);
 
-    // --- MOCKING THE RESULTSET (CORRECTED) ---
-    // We only mock the columns that are actually used in the getTask method
-    ResultSet mockResultSet = mock(ResultSet.class);
-    when(mockResultSet.next()).thenReturn(true, false); // Simulate one result row
-    when(mockResultSet.getString("id")).thenReturn(taskId);
-    when(mockResultSet.getString("title")).thenReturn("A Great Task");
-    when(mockResultSet.getString("assignedTo")).thenReturn("John Doe");
-    when(mockResultSet.getTimestamp("createdAt")).thenReturn(timestamp);
-    when(mockResultSet.getTimestamp("dueDate")).thenReturn(timestamp);
-    when(mockResultSet.getString("profilePicture")).thenReturn("http://example.com/pic.png");
-    when(mockResultSet.getString("parentId")).thenReturn("parent-456");
-    when(mockResultSet.getString("tags")).thenReturn("backend,java");
-    // NOTE: No mocking for 'description', 'priority', 'completed', etc.
+    Task task =
+        Task.builder()
+            .id(taskId)
+            .title("A Great Task")
+            .assignedTo("John Doe")
+            .createdAt(timestamp.toInstant())
+            .dueDate(timestamp.toInstant())
+            .profilePicture("https://example.com/pic.png")
+            .parentId("parent-456")
+            .tags(CSVToArrayConverter.convertCommaSeparated("backend,java", String::trim))
+            .build();
 
-    mockJdbcTemplateGetTask(mockResultSet);
+    when(jdbcTemplate.queryForObject(
+            anyString(), any(SqlParameterSource.class), any(TaskRowMapper.class)))
+        .thenReturn(task);
 
-    try (MockedStatic<CSVToArrayConverter> mockedConverter =
-        Mockito.mockStatic(CSVToArrayConverter.class)) {
-      mockedConverter
-          .when(() -> CSVToArrayConverter.convertCommaSeparated(eq("backend,java"), any()))
-          .thenReturn(Arrays.asList("backend", "java"));
+    Optional<Task> optionalTask = taskDao.getTask(taskId);
+    Task resultTask = optionalTask.orElse(null);
 
-      // Act
-      Task resultTask = taskDao.getTask(taskId);
+    // Assert
+    assertNotNull(resultTask, "Task should not be null");
+    assertEquals(taskId, resultTask.getId(), "Task ID should match");
+    assertEquals("A Great Task", resultTask.getTitle(), "Title should match");
+    assertEquals("John Doe", resultTask.getAssignedTo(), "Assignee should match");
+    assertEquals(now, resultTask.getCreatedAt(), "Creation timestamp should match");
+    assertEquals(now, resultTask.getDueDate(), "Due date should match");
+    assertEquals(
+        "https://example.com/pic.png",
+        resultTask.getProfilePicture(),
+        "Profile picture URL should match");
+    assertEquals("parent-456", resultTask.getParentId(), "Parent ID should match");
+    assertEquals(
+        Arrays.asList("backend", "java"), resultTask.getTags(), "Tags should be correctly parsed");
 
-      // Assert
-      assertNotNull(resultTask, "Task should not be null");
-      assertEquals(taskId, resultTask.getId(), "Task ID should match");
-      assertEquals("A Great Task", resultTask.getTitle(), "Title should match");
-      assertEquals("John Doe", resultTask.getAssignedTo(), "Assignee should match");
-      assertEquals(now, resultTask.getCreatedAt(), "Creation timestamp should match");
-      assertEquals(now, resultTask.getDueDate(), "Due date should match");
-      assertEquals(
-          "http://example.com/pic.png",
-          resultTask.getProfilePicture(),
-          "Profile picture URL should match");
-      assertEquals("parent-456", resultTask.getParentId(), "Parent ID should match");
-      assertEquals(
-          Arrays.asList("backend", "java"),
-          resultTask.getTags(),
-          "Tags should be correctly parsed");
-
-      // Verify that the query method was called on the template
-      verify(jdbcTemplate)
-          .query(anyString(), any(SqlParameterSource.class), any(ResultSetExtractor.class));
-    }
+    // Verify that the query method was called on the template
+    verify(jdbcTemplate)
+        .queryForObject(anyString(), any(SqlParameterSource.class), any(TaskRowMapper.class));
   }
 
   @Test
   @DisplayName("Unit Test: getTask should return an empty Task object if not found")
-  void testGetTaskNotFound() throws SQLException {
+  void testGetTaskNotFound() {
     // Arrange
     String taskId = "non-existent-task";
-    ResultSet mockResultSet = mock(ResultSet.class);
-    when(mockResultSet.next())
-        .thenReturn(false); // No stubs for columns are needed since .next() is false
 
-    mockJdbcTemplateGetTask(mockResultSet);
+    when(jdbcTemplate.queryForObject(
+            anyString(), any(SqlParameterSource.class), any(TaskRowMapper.class)))
+        .thenThrow(new EmptyResultDataAccessException(1));
 
     // Act
-    Task resultTask = taskDao.getTask(taskId);
+    Optional<Task> optionalTask = taskDao.getTask(taskId);
 
     // Assert
-    assertNotNull(resultTask, "Should return a non-null empty task object");
-    assertNull(resultTask.getId(), "ID of the empty task should be null");
+    assertTrue(optionalTask.isEmpty(), "Should return Optional.empty() when task not found");
   }
 
   // The exception test remains the same as it doesn't rely on the ResultSet
@@ -349,13 +300,13 @@ class TaskDaoImplTest {
   void testGetTaskThrowsDataAccessException() {
     // Arrange
     String taskId = "any-id";
-    when(jdbcTemplate.query(
-            anyString(), any(SqlParameterSource.class), any(ResultSetExtractor.class)))
+    when(jdbcTemplate.queryForObject(
+            anyString(), any(SqlParameterSource.class), any(TaskRowMapper.class)))
         .thenThrow(new DataAccessException("Simulated DB error") {});
 
     // Act & Assert
     assertThrows(
-        DataAccessException.class,
+        RuntimeException.class,
         () -> taskDao.getTask(taskId),
         "Should propagate DataAccessException from jdbcTemplate");
   }
