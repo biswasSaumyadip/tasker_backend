@@ -20,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -282,12 +283,60 @@ public class TaskAttachmentDoaImplTest {
     DataAccessException thrown =
         assertThrows(
             DataAccessException.class,
-            () -> {
-              taskDao.updateAttachment(attachment);
-            },
+            () -> taskDao.updateAttachment(attachment),
             "Should re-throw DataAccessException on database error");
 
     assertEquals(dbException, thrown, "The thrown exception should be the one from the mock");
     verify(jdbcTemplate).update(anyString(), any(MapSqlParameterSource.class));
+  }
+
+  @Test
+  @DisplayName("should delete attachment by taskId when taskId is provided")
+  void shouldDeleteAttachmentByTaskId() {
+    // given
+    String taskId = "123";
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+    // when
+    String result = taskDao.deleteAttachment(null, taskId);
+
+    // then
+    assertEquals(taskId, result);
+  }
+
+  @Test
+  @DisplayName("should delete attachment by id when only id is provided")
+  void shouldDeleteAttachmentById() {
+    // given
+    String id = "attach-123";
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+    // when
+    String result = taskDao.deleteAttachment(id, null);
+
+    // then
+    assertEquals(id, result);
+  }
+
+  @Test
+  @DisplayName("should return empty string when both id and taskId are null")
+  void shouldReturnEmptyStringWhenIdAndTaskIdAreNull() {
+    // when
+    String result = taskDao.deleteAttachment(null, null);
+
+    // then
+    assertEquals("", result);
+  }
+
+  @Test
+  @DisplayName("should throw exception when jdbcTemplate throws DataAccessException")
+  void shouldThrowExceptionWhenJdbcCallFails() {
+    // given
+    String id = "fail-123";
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class)))
+        .thenThrow(new DataAccessResourceFailureException("DB error"));
+
+    // when / then
+    assertThrows(DataAccessException.class, () -> taskDao.deleteAttachment(id, null));
   }
 }

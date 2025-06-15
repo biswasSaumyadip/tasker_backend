@@ -9,7 +9,7 @@ public interface TaskAttachmentDao {
 
   String createAttachment(Attachment attachment);
 
-  String deleteAttachment(String id);
+  String deleteAttachment(String id, String taskId);
 
   String updateAttachment(Attachment attachment);
 }

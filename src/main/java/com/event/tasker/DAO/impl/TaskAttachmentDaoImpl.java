@@ -70,8 +70,40 @@ public class TaskAttachmentDaoImpl implements TaskAttachmentDao {
   }
 
   @Override
-  public String deleteAttachment(String id) {
-    return "";
+  public String deleteAttachment(String id, String taskId) {
+    String sqlDeleteByTaskId =
+        """
+        DELETE
+        FROM task_attachments
+        WHERE taskId = :taskId
+        """;
+
+    String sqlDeleteById =
+        """
+        DELETE
+        FROM task_attachments
+        WHERE id = :id
+        """;
+
+    try {
+      if (taskId != null) {
+        return jdbcTemplate.update(sqlDeleteByTaskId, new MapSqlParameterSource("taskId", taskId))
+                >= 1
+            ? taskId
+            : null;
+      }
+
+      if (id != null) {
+        return jdbcTemplate.update(sqlDeleteById, new MapSqlParameterSource("id", id)) >= 1
+            ? id
+            : null;
+      }
+
+      return "";
+    } catch (DataAccessException e) {
+      log.error("Error deleting attachment", e);
+      throw e;
+    }
   }
 
   @Override
