@@ -176,9 +176,6 @@ class TaskServiceImplTest {
     // Given
     String taskId = "task-123";
     List<MultipartFile> files = List.of(mockFile);
-    String uniqueFileName = "unique-file-name";
-    Attachment mockAttachment = Attachment.builder().id("att-1").taskId(taskId).build();
-
     when(mockFile.isEmpty()).thenReturn(true);
 
     // When
@@ -223,7 +220,6 @@ class TaskServiceImplTest {
             .tags(tags)
             .build();
 
-    List<MultipartFile> files = null;
     String insertStatus = "SUCCESS";
 
     // Mock transaction execution to actually execute the lambda
@@ -239,7 +235,7 @@ class TaskServiceImplTest {
             });
 
     // When
-    TaskerResponse<String> response = taskService.addTask(taskDetail, null);
+    taskService.addTask(taskDetail, null);
 
     // Then
     verify(taskDao).createTask(any(Task.class));
@@ -289,7 +285,7 @@ class TaskServiceImplTest {
         .thenReturn(Attachment.builder().id("att-1").taskId(taskId).build());
 
     // When
-    TaskerResponse<String> response = taskService.addTask(taskDetail, files);
+    taskService.addTask(taskDetail, files);
 
     // Then
     verify(taskDao).createTask(any(Task.class));
@@ -349,5 +345,57 @@ class TaskServiceImplTest {
     assertEquals("PARTIAL_SUCCESS", response.getStatus());
     assertEquals("Task created, but file attachment failed.", response.getMessage());
     assertEquals(insertStatus, response.getData());
+  }
+
+  @Test
+  @DisplayName("deleteTask: should return DELETED status when task is deleted successfully")
+  void testDeleteTaskSuccess() {
+    // Given
+    String taskId = "task-123";
+    when(taskDao.softDeleteTaskById(taskId)).thenReturn(true);
+
+    // When
+    TaskerResponse<String> response = taskService.deleteTask(taskId);
+
+    // Then
+    assertNotNull(response);
+    assertEquals("DELETED", response.getStatus());
+    assertEquals("Task deleted", response.getMessage());
+    assertNull(response.getData()); // Since delete does not return data
+    verify(taskDao).softDeleteTaskById(taskId);
+  }
+
+  @Test
+  @DisplayName("deleteTask: should return 'Task not found' when deletion returns false")
+  void testDeleteTaskNotFound() {
+    // Given
+    String taskId = "task-456";
+    when(taskDao.softDeleteTaskById(taskId)).thenReturn(false);
+
+    // When
+    TaskerResponse<String> response = taskService.deleteTask(taskId);
+
+    // Then
+    assertNotNull(response);
+    assertNull(response.getStatus());
+    assertEquals("Task not found", response.getMessage());
+    assertNull(response.getData());
+    verify(taskDao).softDeleteTaskById(taskId);
+  }
+
+  @Test
+  @DisplayName("deleteTask: should throw exception when soft delete fails with exception")
+  void testDeleteTaskThrowsException() {
+    // Given
+    String taskId = "task-error";
+    RuntimeException ex = new RuntimeException("Database failure");
+    when(taskDao.softDeleteTaskById(taskId)).thenThrow(ex);
+
+    // When & Then
+    RuntimeException thrown =
+        assertThrows(RuntimeException.class, () -> taskService.deleteTask(taskId));
+
+    assertEquals(ex, thrown);
+    verify(taskDao).softDeleteTaskById(taskId);
   }
 }
