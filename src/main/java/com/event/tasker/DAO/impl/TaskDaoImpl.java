@@ -181,39 +181,46 @@ public class TaskDaoImpl implements TaskDao {
 
     MapSqlParameterSource parameters = new MapSqlParameterSource("taskId", taskId);
 
-    return jdbcTemplate.query(
-        sql,
-        parameters,
-        resultSet -> {
-          TaskDetail taskDetail = new TaskDetail();
-          while (resultSet.next()) {
-            // TODO: handle json exception here
-            String attachmentString = resultSet.getString("attachments");
-            JsonArray attachmentJson = gson.fromJson(attachmentString, JsonArray.class);
-            List<Attachment> attachments = new ArrayList<>();
+    try {
+      return jdbcTemplate.query(
+          sql,
+          parameters,
+          resultSet -> {
+            TaskDetail taskDetail = new TaskDetail();
+            while (resultSet.next()) {
+              String attachmentString = resultSet.getString("attachments");
+              JsonArray attachmentJson = gson.fromJson(attachmentString, JsonArray.class);
+              List<Attachment> attachments = new ArrayList<>();
 
-            for (JsonElement jsonElement : attachmentJson) {
-              attachments.add(gson.fromJson(jsonElement, Attachment.class));
+              for (JsonElement jsonElement : attachmentJson) {
+                attachments.add(gson.fromJson(jsonElement, Attachment.class));
+              }
+
+              taskDetail =
+                  TaskDetail.builder()
+                      .id(resultSet.getString("id"))
+                      .assignedTo(resultSet.getString("assignedTo"))
+                      .title(resultSet.getString("title"))
+                      .description(resultSet.getString("description"))
+                      .completed(resultSet.getBoolean("completed"))
+                      .priority(Task.Priority.valueOf(resultSet.getString("priority")))
+                      .dueDate(resultSet.getTimestamp("dueDate").toInstant())
+                      .parentId(resultSet.getString("parentId"))
+                      .tags(
+                          CSVToArrayConverter.convertCommaSeparated(
+                              resultSet.getString("tags"), String::trim))
+                      .attachments(attachments)
+                      .build();
             }
 
-            taskDetail =
-                TaskDetail.builder()
-                    .id(resultSet.getString("id"))
-                    .assignedTo(resultSet.getString("assignedTo"))
-                    .title(resultSet.getString("title"))
-                    .description(resultSet.getString("description"))
-                    .completed(resultSet.getBoolean("completed"))
-                    .priority(Task.Priority.valueOf(resultSet.getString("priority")))
-                    .dueDate(resultSet.getTimestamp("dueDate").toInstant())
-                    .parentId(resultSet.getString("parentId"))
-                    .tags(
-                        CSVToArrayConverter.convertCommaSeparated(
-                            resultSet.getString("tags"), String::trim))
-                    .attachments(attachments)
-                    .build();
-          }
-
-          return taskDetail;
-        });
+            return taskDetail;
+          });
+    } catch (DataAccessException e) {
+      log.error("Error getting task detail", e);
+      throw e;
+    } catch (Exception e) {
+      log.error("Error getting task detail", e);
+      throw new RuntimeException(e.getMessage());
+    }
   }
 }
