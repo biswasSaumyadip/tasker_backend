@@ -30,31 +30,16 @@ public class TaskDaoImpl implements TaskDao {
 
   private static final String TASK_BASE_SELECT =
       """
-        SELECT t.id, t.title, t.description, t.completed, t.priority,
-               t.created_at AS createdAt, t.due_date AS dueDate,
-               t.parent_id AS parentId,
-               CONCAT(u.first_name, ' ', u.last_name) AS assignedTo,
-               u.profile_picture_url AS profilePicture,
-               GROUP_CONCAT(tt.tag) AS tags
-        FROM tasks t
-        LEFT JOIN task_tags tt ON t.id = tt.task_id
-        LEFT JOIN users u ON u.user_id = t.assigned_to
-        """;
-
-  private static final String TASK_DETAIL_ATTACHMENT_JOIN =
-      """
-        LEFT JOIN
-            (SELECT ta.taskId,
-                    JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            'url', ta.url,
-                            'fileName', ta.fileName,
-                            'fileType', ta.fileType
-                        )
-                    ) AS attachments
-             FROM task_attachments ta
-             GROUP BY ta.taskId) AS attachments_agg ON t.id = attachments_agg.taskId
-        """;
+            SELECT t.id, t.title, t.description, t.completed, t.priority,
+                   t.created_at AS createdAt, t.due_date AS dueDate,
+                   t.parent_id AS parentId,
+                   CONCAT(u.first_name, ' ', u.last_name) AS assignedTo,
+                   u.profile_picture_url AS profilePicture,
+                   GROUP_CONCAT(tt.tag) AS tags
+            FROM tasks t
+            LEFT JOIN task_tags tt ON t.id = tt.task_id
+            LEFT JOIN users u ON u.user_id = t.assigned_to
+            """;
 
   private static final String TASK_GROUP_BY =
       "GROUP BY t.id, u.first_name, u.last_name, u.profile_picture_url";
@@ -69,11 +54,11 @@ public class TaskDaoImpl implements TaskDao {
     try {
       String SQL =
           """
-          INSERT INTO tasks
-          (id, title, description, completed, priority, due_date, assigned_to, parent_id)
-          VALUES (:id, :title, :description, :completed, :priority, :dueDate, :assignedTo,
-          		  :parentId);
-          """;
+                    INSERT INTO tasks
+                    (id, title, description, completed, priority, due_date, assigned_to, parent_id)
+                    VALUES (:id, :title, :description, :completed, :priority, :dueDate, :assignedTo,
+                    		  :parentId);
+                    """;
 
       MapSqlParameterSource parameterSource =
           new MapSqlParameterSource()
@@ -127,9 +112,9 @@ public class TaskDaoImpl implements TaskDao {
   public boolean softDeleteTaskById(String taskId) {
     final String sql =
         """
-            UPDATE tasks SET deletedAt = NOW(), isDeleted = 1
-            WHERE id = :taskId AND deletedAt IS NULL
-           """;
+                 UPDATE tasks SET deletedAt = NOW(), isDeleted = 1
+                 WHERE id = :taskId AND deletedAt IS NULL
+                """;
     MapSqlParameterSource params = new MapSqlParameterSource("taskId", taskId);
 
     try {
@@ -145,35 +130,35 @@ public class TaskDaoImpl implements TaskDao {
   public Optional<TaskDetail> getTaskDetail(String taskId) {
     String sql =
         """
-            SELECT t.id                                                     AS id,
-                   t.title                                                  as title,
-                   t.description                                            as description,
-                   t.completed                                              as completed,
-                   t.priority                                               as priority,
-                   CONCAT(u.first_name, ' ', u.last_name)                   AS assignedTo,
-                   t.created_at                                             AS createdAt,
-                   t.due_date                                               AS dueDate,
-                   u.profile_picture_url                                    AS profilePicture,
-                   parent_id                                                AS parentID,
-                   GROUP_CONCAT(tt.tag)                                     AS tags,
-                   MAX(COALESCE(attachments_agg.attachments, JSON_ARRAY())) AS attachments
-            FROM tasks t
-                     LEFT JOIN task_tags tt ON t.id = tt.task_id
-                     LEFT JOIN users u ON u.user_id = t.assigned_to
-                     LEFT JOIN
-                 (SELECT ta.taskId,
-                         JSON_ARRAYAGG(
-                                 JSON_OBJECT(
-                                         'url', ta.url,
-                                         'fileName', ta.fileName,
-                                         'fileType', ta.fileType
-                                 )
-                         ) AS attachments
-                  FROM task_attachments ta
-                  GROUP BY ta.taskId) AS attachments_agg ON t.id = attachments_agg.taskId
-            WHERE t.id = :taskId
-            GROUP BY t.id, u.first_name, u.last_name
-          """;
+                  SELECT t.id                                                     AS id,
+                         t.title                                                  as title,
+                         t.description                                            as description,
+                         t.completed                                              as completed,
+                         t.priority                                               as priority,
+                         CONCAT(u.first_name, ' ', u.last_name)                   AS assignedTo,
+                         t.created_at                                             AS createdAt,
+                         t.due_date                                               AS dueDate,
+                         u.profile_picture_url                                    AS profilePicture,
+                         parent_id                                                AS parentID,
+                         GROUP_CONCAT(tt.tag)                                     AS tags,
+                         MAX(COALESCE(attachments_agg.attachments, JSON_ARRAY())) AS attachments
+                  FROM tasks t
+                           LEFT JOIN task_tags tt ON t.id = tt.task_id
+                           LEFT JOIN users u ON u.user_id = t.assigned_to
+                           LEFT JOIN
+                       (SELECT ta.taskId,
+                               JSON_ARRAYAGG(
+                                       JSON_OBJECT(
+                                               'url', ta.url,
+                                               'fileName', ta.fileName,
+                                               'fileType', ta.fileType
+                                       )
+                               ) AS attachments
+                        FROM task_attachments ta
+                        GROUP BY ta.taskId) AS attachments_agg ON t.id = attachments_agg.taskId
+                  WHERE t.id = :taskId
+                  GROUP BY t.id, u.first_name, u.last_name
+                """;
 
     MapSqlParameterSource parameters = new MapSqlParameterSource("taskId", taskId);
 
@@ -183,6 +168,39 @@ public class TaskDaoImpl implements TaskDao {
     } catch (Exception e) {
       log.error("Error getting task detail", e);
       return Optional.empty();
+    }
+  }
+
+  @Override
+  public boolean updateTask(Task task) {
+    final String sql =
+        """
+                UPDATE tasks
+                SET priority    = :priority,
+                completed   = :completed,
+                description = :description,
+                assigned_to = :assignedTo,
+                title       = :title,
+                due_date    = :due_date,
+                parent_id   = :parent_id
+            WHERE id = :id
+            """;
+
+    try {
+      MapSqlParameterSource parameters = new MapSqlParameterSource();
+      parameters.addValue("priority", task.getPriority());
+      parameters.addValue("completed", task.isCompleted());
+      parameters.addValue("description", task.getDescription());
+      parameters.addValue("title", task.getTitle());
+      parameters.addValue("due_date", task.getDueDate());
+      parameters.addValue("assignedTo", task.getAssignedTo());
+      parameters.addValue("parent_id", task.getParentId());
+      parameters.addValue("id", task.getId());
+
+      return jdbcTemplate.update(sql, parameters) >= 1;
+    } catch (DataAccessException e) {
+      log.error("Error creating task", e);
+      throw e;
     }
   }
 }

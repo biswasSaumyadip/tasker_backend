@@ -9,11 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +43,7 @@ import com.event.tasker.model.TaskDetail;
 import com.event.tasker.rowMapper.TaskDetailRowMapper;
 import com.event.tasker.rowMapper.TaskRowMapper;
 import com.event.tasker.util.CSVToArrayConverter;
+import com.google.gson.Gson;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Unit Test: TaskDaoImpl")
@@ -439,5 +443,79 @@ class TaskDaoImplTest {
 
     // --- Assert ---
     assertTrue(result.isEmpty());
+  }
+
+  @Test
+  public void updateTask_shouldReturnTrue_whenUpdateSuccessful() {
+    NamedParameterJdbcTemplate mockJdbcTemplate = mock(NamedParameterJdbcTemplate.class);
+    Gson gson = new Gson();
+    TaskDaoImpl taskDao = new TaskDaoImpl(mockJdbcTemplate, gson);
+
+    Task task = new Task();
+    task.setId(UUID.randomUUID().toString());
+    task.setTitle("Updated Title");
+    task.setDescription("Updated Description");
+    task.setCompleted(true);
+    task.setPriority(Task.Priority.HIGH);
+    task.setAssignedTo("user-123");
+    task.setDueDate(
+        LocalDateTime.of(2025, 6, 15, 19, 30).atZone(ZoneId.systemDefault()).toInstant());
+    task.setParentId("parent-001");
+
+    when(mockJdbcTemplate.update(any(String.class), any(MapSqlParameterSource.class)))
+        .thenReturn(1);
+
+    boolean result = taskDao.updateTask(task);
+    assertTrue(result);
+    verify(mockJdbcTemplate, times(1)).update(any(String.class), any(MapSqlParameterSource.class));
+  }
+
+  @Test
+  public void updateTask_shouldReturnFalse_whenNoRowsUpdated() {
+    NamedParameterJdbcTemplate mockJdbcTemplate = mock(NamedParameterJdbcTemplate.class);
+    Gson gson = new Gson();
+    TaskDaoImpl taskDao = new TaskDaoImpl(mockJdbcTemplate, gson);
+
+    Task task = new Task();
+    task.setId(UUID.randomUUID().toString());
+    task.setTitle("Updated Title");
+    task.setDescription("Updated Description");
+    task.setCompleted(false);
+    task.setPriority(Task.Priority.LOW);
+    task.setAssignedTo("user-456");
+    task.setDueDate(
+        LocalDateTime.of(2025, 6, 15, 19, 30).atZone(ZoneId.systemDefault()).toInstant());
+    task.setParentId(null);
+
+    when(mockJdbcTemplate.update(any(String.class), any(MapSqlParameterSource.class)))
+        .thenReturn(0);
+
+    boolean result = taskDao.updateTask(task);
+    assertFalse(result);
+    verify(mockJdbcTemplate, times(1)).update(any(String.class), any(MapSqlParameterSource.class));
+  }
+
+  @Test
+  public void updateTask_shouldThrowException_whenJdbcFails() {
+    NamedParameterJdbcTemplate mockJdbcTemplate = mock(NamedParameterJdbcTemplate.class);
+    Gson gson = new Gson();
+    TaskDaoImpl taskDao = new TaskDaoImpl(mockJdbcTemplate, gson);
+
+    Task task = new Task();
+    task.setId("some-id");
+    task.setTitle("Test");
+    task.setDescription("Desc");
+    task.setCompleted(false);
+    task.setPriority(Task.Priority.MEDIUM);
+    task.setAssignedTo("someone");
+    task.setDueDate(
+        LocalDateTime.of(2025, 6, 15, 19, 30).atZone(ZoneId.systemDefault()).toInstant());
+    task.setParentId("parent-id");
+
+    when(mockJdbcTemplate.update(any(String.class), any(MapSqlParameterSource.class)))
+        .thenThrow(new DataAccessException("fail") {});
+
+    assertThrows(DataAccessException.class, () -> taskDao.updateTask(task));
+    verify(mockJdbcTemplate, times(1)).update(any(String.class), any(MapSqlParameterSource.class));
   }
 }
