@@ -45,7 +45,7 @@ public class TaskDaoImpl implements TaskDao {
       "GROUP BY t.id, u.first_name, u.last_name, u.profile_picture_url";
 
   public ArrayList<Task> getTasks() {
-    String sql = TASK_BASE_SELECT + " " + TASK_GROUP_BY;
+    String sql = TASK_BASE_SELECT + " WHERE t.isDeleted = 0 " + TASK_GROUP_BY;
     return new ArrayList<>(jdbcTemplate.query(sql, new TaskRowMapper()));
   }
 
@@ -85,7 +85,8 @@ public class TaskDaoImpl implements TaskDao {
 
   @Override
   public Optional<Task> getTask(String taskId) {
-    final String sql = TASK_BASE_SELECT + " AND t.id = :taskId" + TASK_GROUP_BY;
+    final String sql =
+        TASK_BASE_SELECT + " WHERE t.id = :taskId AND t.isDeleted = 0 " + TASK_GROUP_BY;
 
     SqlParameterSource parameters = new MapSqlParameterSource("taskId", taskId);
 
@@ -156,7 +157,7 @@ public class TaskDaoImpl implements TaskDao {
                                ) AS attachments
                         FROM task_attachments ta
                         GROUP BY ta.taskId) AS attachments_agg ON t.id = attachments_agg.taskId
-                  WHERE t.id = :taskId
+                  WHERE t.id = :taskId AND t.isDeleted = 0
                   GROUP BY t.id, u.first_name, u.last_name
                 """;
 

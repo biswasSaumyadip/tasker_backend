@@ -119,6 +119,7 @@ public class TaskServiceImpl implements TaskService {
     // should delete the task from database
     // should delete the file if it was uploaded then it should be deleted also
     // need to retrieve the data first then if attachment exist delete them
+    taskDao.softDeleteTaskById(taskId);
 
     return null;
   }
