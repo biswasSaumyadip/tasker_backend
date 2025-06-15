@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -309,5 +311,52 @@ class TaskDaoImplTest {
         RuntimeException.class,
         () -> taskDao.getTask(taskId),
         "Should propagate DataAccessException from jdbcTemplate");
+  }
+
+  @Test
+  @DisplayName("Unit Test: softDeleteTaskById should return true if task was updated")
+  void testSoftDeleteTaskById_successfulDelete() {
+    // Arrange
+    String taskId = "123";
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+    // Act
+    boolean result = taskDao.softDeleteTaskById(taskId);
+
+    // Assert
+    assertTrue(result, "Should return true when a row is updated");
+  }
+
+  @Test
+  @DisplayName("Unit Test: softDeleteTaskById should return false if no row was updated")
+  void testSoftDeleteTaskById_notFoundOrAlreadyDeleted() {
+    // Arrange
+    String taskId = "not-found";
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(0);
+
+    // Act
+    boolean result = taskDao.softDeleteTaskById(taskId);
+
+    // Assert
+    assertFalse(result, "Should return false when no row is updated");
+  }
+
+  @Test
+  @DisplayName("Unit Test: softDeleteTaskById should throw exception on DB error")
+  void testSoftDeleteTaskById_throwsException() {
+    // Arrange
+    String taskId = "error-case";
+    DataAccessException dataAccessException = mock(DataAccessException.class);
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class)))
+        .thenThrow(dataAccessException);
+
+    // Act & Assert
+    DataAccessException thrown =
+        assertThrows(
+            DataAccessException.class,
+            () -> taskDao.softDeleteTaskById(taskId),
+            "Should throw DataAccessException on DB error");
+
+    assertEquals(dataAccessException, thrown, "Thrown exception should match the mock");
   }
 }
