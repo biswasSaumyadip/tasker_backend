@@ -1,9 +1,11 @@
 package com.event.tasker.DAO;
 
+import java.util.Optional;
+
 import com.event.tasker.model.Attachment;
 
 public interface TaskAttachmentDao {
-  Attachment getAttachment(String id);
+  Optional<Attachment> getAttachment(String id);
 
   String createAttachment(Attachment attachment);
 
