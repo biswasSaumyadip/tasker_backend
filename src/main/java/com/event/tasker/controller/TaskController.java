@@ -59,4 +59,9 @@ public class TaskController {
   public ResponseEntity<TaskerResponse<String>> deleteTask(@PathVariable String id) {
     return ResponseEntity.ok(taskService.deleteTask(id));
   }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<TaskerResponse<TaskDetail>> getTaskDetail(@PathVariable String id) {
+    return ResponseEntity.ok(taskService.getTaskBy(id));
+  }
 }

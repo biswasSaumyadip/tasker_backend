@@ -52,7 +52,7 @@ public class TaskDaoImpl implements TaskDao {
   @Override
   public String createTask(Task task) {
     try {
-      String SQL =
+      String sql =
           """
                     INSERT INTO tasks
                     (id, title, description, completed, priority, due_date, assigned_to, parent_id)
@@ -71,7 +71,7 @@ public class TaskDaoImpl implements TaskDao {
               .addValue("assignedTo", task.getAssignedTo())
               .addValue("parentId", task.getParentId());
 
-      int rowsAffected = jdbcTemplate.update(SQL, parameterSource);
+      int rowsAffected = jdbcTemplate.update(sql, parameterSource);
 
       return rowsAffected > 0 ? task.getId() : null;
     } catch (DataAccessException e) {
@@ -136,7 +136,7 @@ public class TaskDaoImpl implements TaskDao {
                          t.description                                            as description,
                          t.completed                                              as completed,
                          t.priority                                               as priority,
-                         CONCAT(u.first_name, ' ', u.last_name)                   AS assignedTo,
+                         u.user_id                                                AS assignedTo,
                          t.created_at                                             AS createdAt,
                          t.due_date                                               AS dueDate,
                          u.profile_picture_url                                    AS profilePicture,

@@ -45,7 +45,7 @@ public class TaskAttachmentDaoImpl implements TaskAttachmentDao {
   @Override
   public String createAttachment(Attachment attachment) {
     try {
-      String SQL =
+      String sql =
           """
 				INSERT INTO task_attachments (id, taskId, url, fileName, fileType)
 				VALUES (:id, :taskId, :url,
@@ -53,7 +53,7 @@ public class TaskAttachmentDaoImpl implements TaskAttachmentDao {
 				""";
       SqlParameterSource parameterSource = new BeanPropertySqlParameterSource(attachment);
 
-      int rowsAffected = jdbcTemplate.update(SQL, parameterSource);
+      int rowsAffected = jdbcTemplate.update(sql, parameterSource);
       if (rowsAffected > 0) {
         return attachment.getId();
       } else {

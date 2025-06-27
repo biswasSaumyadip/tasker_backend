@@ -3,6 +3,7 @@ package com.event.tasker.service.impl;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -12,7 +13,11 @@ import org.springframework.web.multipart.MultipartFile;
 import com.event.tasker.DAO.TaskAttachmentDao;
 import com.event.tasker.DAO.TaskTagDao;
 import com.event.tasker.DAO.impl.TaskDaoImpl;
-import com.event.tasker.model.*;
+import com.event.tasker.model.Attachment;
+import com.event.tasker.model.Task;
+import com.event.tasker.model.TaskDetail;
+import com.event.tasker.model.TaskTag;
+import com.event.tasker.model.TaskerResponse;
 import com.event.tasker.service.FileStorageService;
 import com.event.tasker.service.TaskService;
 
@@ -129,7 +134,21 @@ public class TaskServiceImpl implements TaskService {
   }
 
   @Override
-  public TaskerResponse<String> getTaskBy(String taskId) {
+  public TaskerResponse<TaskDetail> getTaskBy(String taskId) {
+    try {
+      Optional<TaskDetail> taskDetail = taskDao.getTaskDetail(taskId);
+
+      if (taskDetail.isPresent()) {
+        TaskDetail detail = taskDetail.get();
+        return TaskerResponse.<TaskDetail>builder()
+            .data(detail)
+            .message("Task " + taskId + " found")
+            .build();
+      }
+    } catch (Exception e) {
+      log.error("Error getting task {}", taskId, e);
+      throw e;
+    }
     return null;
   }
 }

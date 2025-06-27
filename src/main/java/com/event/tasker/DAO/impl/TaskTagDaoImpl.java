@@ -29,7 +29,7 @@ public class TaskTagDaoImpl implements TaskTagDao {
       return 0;
     }
 
-    String SQL = """
+    String sql = """
 				INSERT INTO task_tags (task_id, tag)
 				VALUES (:taskId, :name);
 				""";
@@ -37,7 +37,7 @@ public class TaskTagDaoImpl implements TaskTagDao {
     SqlParameterSource[] batchParams = SqlParameterSourceUtils.createBatch(tags.toArray());
 
     try {
-      int[] result = jdbcTemplate.batchUpdate(SQL, batchParams);
+      int[] result = jdbcTemplate.batchUpdate(sql, batchParams);
 
       return Arrays.stream(result).sum();
     } catch (DataAccessException e) {

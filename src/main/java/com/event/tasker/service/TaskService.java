@@ -18,5 +18,5 @@ public interface TaskService {
 
   TaskerResponse<String> deleteTask(String taskId);
 
-  TaskerResponse<String> getTaskBy(String taskId);
+  TaskerResponse<TaskDetail> getTaskBy(String taskId);
 }
