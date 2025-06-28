@@ -1,5 +1,6 @@
 package com.event.tasker.DAO;
 
+import java.util.ArrayList;
 import java.util.Optional;
 
 import com.event.tasker.model.Attachment;
@@ -14,4 +15,6 @@ public interface TaskAttachmentDao {
   String updateAttachment(Attachment attachment);
 
   String softDeleteAttachment(String id);
+
+  ArrayList<Attachment> getAttachmentsBy(String taskId);
 }

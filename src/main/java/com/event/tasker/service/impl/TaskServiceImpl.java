@@ -179,6 +179,7 @@ public class TaskServiceImpl implements TaskService {
         // TODO: old files reference should be deleted in background
 
         // TODO: Fetch the list of attachments from db
+        List<Attachment> currentAttachments;
         // TODO: check which attachments are not available in the request and based on that mark
         // them as delete.
         // TODO: delete the reset of the file

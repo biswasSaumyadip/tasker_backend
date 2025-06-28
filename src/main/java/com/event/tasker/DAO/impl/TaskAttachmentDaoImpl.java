@@ -1,5 +1,6 @@
 package com.event.tasker.DAO.impl;
 
+import java.util.ArrayList;
 import java.util.Optional;
 
 import org.springframework.dao.DataAccessException;
@@ -144,6 +145,40 @@ public class TaskAttachmentDaoImpl implements TaskAttachmentDao {
       return jdbcTemplate.update(sql, new MapSqlParameterSource("id", id)) >= 1 ? id : null;
     } catch (DataAccessException e) {
       log.error("Error softDeleting attachment", e);
+      throw e;
+    }
+  }
+
+  @Override
+  public ArrayList<Attachment> getAttachmentsBy(String taskId) {
+    String sql =
+        """
+              SELECT url, fileName, fileType, uploadedAt
+              FROM task_attachments
+              WHERE taskId = :taskId AND isDeleted = 0
+              """;
+
+    try {
+      return jdbcTemplate.query(
+          sql,
+          new MapSqlParameterSource("taskId", taskId),
+          rs -> {
+            ArrayList<Attachment> attachments = new ArrayList<>();
+            if (rs.next()) {
+              attachments.add(
+                  Attachment.builder()
+                      .url(rs.getString("url"))
+                      .fileName(rs.getString("fileName"))
+                      .fileType(rs.getString("fileType"))
+                      .id(rs.getString("id"))
+                      .taskId(rs.getString("taskId"))
+                      .build());
+            }
+
+            return attachments;
+          });
+    } catch (DataAccessException e) {
+      log.error(e.getMessage(), e);
       throw e;
     }
   }

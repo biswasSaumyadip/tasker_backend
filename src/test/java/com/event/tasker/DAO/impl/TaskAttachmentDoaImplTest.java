@@ -1,5 +1,6 @@
 package com.event.tasker.DAO.impl;
 
+import static com.event.tasker.util.MockUtils.anyResultSetExtractor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.util.AssertionErrors.assertNotNull;
 
+import java.util.ArrayList;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -363,5 +365,32 @@ public class TaskAttachmentDoaImplTest {
     assertThrows(DataAccessException.class, () -> taskDao.softDeleteAttachment(id));
 
     verify(jdbcTemplate).update(anyString(), any(MapSqlParameterSource.class));
+  }
+
+  @Test
+  @DisplayName("getAttachmentBy: Should return list of attachments")
+  void testGetAttachmentsBy_ShouldReturnListOfAttachments() {
+    ArrayList<Attachment> attachments = new ArrayList<>();
+    attachments.add(
+        Attachment.builder().id("1311").url("//file//iou92345").fileName("me.pdf").build());
+
+    when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), anyResultSetExtractor()))
+        .thenReturn(attachments);
+
+    ArrayList<Attachment> result = taskDao.getAttachmentsBy("1311");
+    assertEquals(attachments, result);
+    verify(jdbcTemplate)
+        .query(anyString(), any(MapSqlParameterSource.class), anyResultSetExtractor());
+  }
+
+  @Test
+  @DisplayName("getAttachmentBy: Should throw DataAccessException")
+  void testGetAttachmentsBy_ShouldThrowDataAccessException() {
+    when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), anyResultSetExtractor()))
+        .thenThrow(new DataAccessResourceFailureException("DB error"));
+
+    assertThrows(DataAccessException.class, () -> taskDao.getAttachmentsBy("1311"));
+    verify(jdbcTemplate)
+        .query(anyString(), any(MapSqlParameterSource.class), anyResultSetExtractor());
   }
 }
