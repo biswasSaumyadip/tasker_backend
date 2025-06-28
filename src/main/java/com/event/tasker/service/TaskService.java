@@ -19,4 +19,6 @@ public interface TaskService {
   TaskerResponse<String> deleteTask(String taskId);
 
   TaskerResponse<TaskDetail> getTaskBy(String taskId);
+
+  TaskerResponse<String> updateTask(TaskDetail task, List<MultipartFile> files);
 }

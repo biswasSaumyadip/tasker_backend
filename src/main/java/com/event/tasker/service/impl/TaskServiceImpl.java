@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -150,5 +151,58 @@ public class TaskServiceImpl implements TaskService {
       throw e;
     }
     return null;
+  }
+
+  @Override
+  @Transactional
+  public TaskerResponse<String> updateTask(TaskDetail taskDetail, List<MultipartFile> files) {
+    try {
+      log.info("Updating task {}", taskDetail.getId());
+      Task task =
+          Task.builder()
+              .id(taskDetail.getId())
+              .description(taskDetail.getDescription())
+              .title(taskDetail.getTitle())
+              .dueDate(taskDetail.getDueDate())
+              .priority(taskDetail.getPriority())
+              .parentId(taskDetail.getParentId())
+              .assignedTo(taskDetail.getAssignedTo())
+              .tags(taskDetail.getTags())
+              .completed(taskDetail.isCompleted())
+              .build();
+
+      List<Attachment> attachments = taskDetail.getAttachments();
+
+      if (attachments != null && !attachments.isEmpty()) {
+        log.info("Updating attachments for task {}", taskDetail.getId());
+        // TODO: old files reference should be deleted in background
+        addAttachments(taskDetail.getId(), files);
+      }
+
+      List<String> tags = taskDetail.getTags();
+
+      if (tags != null && !tags.isEmpty()) {
+        // TODO 1: Fetch task tags by uuid - write a new method in the tagDao
+        // TODO 2: Filter based on what is available in the current and previous
+        // TODO 3: Soft delete the previous once which do not exist in the current - delete for tag
+        // dao
+        // TODO 4: Insert the new tags
+        //                ArrayList<TaskTag> existingTaskTags = taskTagDao.;
+        log.info("Updating tags for task {}", taskDetail.getId());
+        ArrayList<TaskTag> taskTags = new ArrayList<>();
+        for (String tag : tags) {}
+      }
+
+      if (taskDao.updateTask(task)) {
+        return TaskerResponse.<String>builder()
+            .message("Task " + task.getId() + " updated")
+            .build();
+      } else {
+        return TaskerResponse.<String>builder().message("Task update failed.").build();
+      }
+    } catch (Exception e) {
+      log.error("Error updating task {}", taskDetail.getId(), e);
+      throw e;
+    }
   }
 }

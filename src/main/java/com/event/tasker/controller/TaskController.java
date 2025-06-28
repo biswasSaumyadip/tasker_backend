@@ -64,4 +64,14 @@ public class TaskController {
   public ResponseEntity<TaskerResponse<TaskDetail>> getTaskDetail(@PathVariable String id) {
     return ResponseEntity.ok(taskService.getTaskBy(id));
   }
+
+  @PostMapping(
+      consumes = {"multipart/form-data"},
+      path = "/{id}")
+  public ResponseEntity<TaskerResponse<String>> updateTask(
+      @PathVariable String id,
+      @RequestPart TaskDetail task,
+      @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+    return null;
+  }
 }

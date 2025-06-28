@@ -29,7 +29,7 @@ public class TaskAttachmentDaoImpl implements TaskAttachmentDao {
         """
           SELECT url, fileName, fileType, uploadedAt
           FROM task_attachments
-          WHERE taskId = :taskId
+          WHERE taskId = :taskId AND isDeleted = 0
           """;
 
     try {
