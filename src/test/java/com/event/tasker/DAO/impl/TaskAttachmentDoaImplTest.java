@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.util.AssertionErrors.assertNotNull;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
@@ -392,5 +393,37 @@ public class TaskAttachmentDoaImplTest {
     assertThrows(DataAccessException.class, () -> taskDao.getAttachmentsBy("1311"));
     verify(jdbcTemplate)
         .query(anyString(), any(MapSqlParameterSource.class), anyResultSetExtractor());
+  }
+
+  @Test
+  @DisplayName(
+      "softDeleteAttachmentsBy: Should batch delete attachments and return success message")
+  void testSoftDeleteAttachmentsBy_ShouldBatchDeleteSuccessfully() {
+    // Arrange
+    ArrayList<String> ids = new ArrayList<>(List.of("att-1", "att-2", "att-3"));
+    int[] batchResult = new int[] {1, 1, 1}; // Simulate all updates succeeded
+
+    when(jdbcTemplate.batchUpdate(anyString(), any(SqlParameterSource[].class)))
+        .thenReturn(batchResult);
+
+    // Act
+    String result = taskDao.softDeleteAttachmentsBy(ids);
+
+    // Assert
+    assertEquals("Soft-deleted 3 attachments", result);
+    verify(jdbcTemplate).batchUpdate(anyString(), any(SqlParameterSource[].class));
+  }
+
+  @Test
+  @DisplayName("softDeleteAttachmentsBy: Should throw DataAccessException when DB call fails")
+  void testSoftDeleteAttachmentsBy_ShouldThrowException() {
+    // Arrange
+    ArrayList<String> ids = new ArrayList<>(List.of("att-1", "att-2"));
+    when(jdbcTemplate.batchUpdate(anyString(), any(SqlParameterSource[].class)))
+        .thenThrow(new DataAccessResourceFailureException("DB error"));
+
+    // Act & Assert
+    assertThrows(DataAccessException.class, () -> taskDao.softDeleteAttachmentsBy(ids));
+    verify(jdbcTemplate).batchUpdate(anyString(), any(SqlParameterSource[].class));
   }
 }

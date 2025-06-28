@@ -72,6 +72,7 @@ public class TaskController {
       @PathVariable String id,
       @RequestPart TaskDetail task,
       @RequestPart(value = "files", required = false) List<MultipartFile> files) {
-    return null;
+    task.setId(id);
+    return ResponseEntity.ok(taskService.updateTask(task, files));
   }
 }

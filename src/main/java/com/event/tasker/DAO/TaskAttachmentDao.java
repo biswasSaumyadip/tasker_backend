@@ -17,4 +17,6 @@ public interface TaskAttachmentDao {
   String softDeleteAttachment(String id);
 
   ArrayList<Attachment> getAttachmentsBy(String taskId);
+
+  String softDeleteAttachmentsBy(ArrayList<String> ids);
 }

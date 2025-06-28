@@ -176,15 +176,24 @@ public class TaskServiceImpl implements TaskService {
 
       if (attachments != null && !attachments.isEmpty()) {
         log.info("Updating attachments for task {}", taskDetail.getId());
-        // TODO: old files reference should be deleted in background
+        List<Attachment> currentAttachments =
+            taskAttachmentDao.getAttachmentsBy(taskDetail.getId());
+        if (currentAttachments != null && !currentAttachments.isEmpty()) {
+          ArrayList<String> toDelete =
+              currentAttachments.stream()
+                  .filter(attachment -> !taskDetail.getAttachments().contains(attachment))
+                  .map(Attachment::getId)
+                  .collect(Collectors.toCollection(ArrayList::new));
 
-        // TODO: Fetch the list of attachments from db
-        List<Attachment> currentAttachments;
-        // TODO: check which attachments are not available in the request and based on that mark
-        // them as delete.
-        // TODO: delete the reset of the file
-        // TODO: manage the new files to be added
-        addAttachments(taskDetail.getId(), files);
+          if (!toDelete.isEmpty()) {
+            log.info("Deleting attachments {} for task {}", toDelete, taskDetail.getId());
+            log.info(taskAttachmentDao.softDeleteAttachmentsBy(toDelete));
+          }
+        }
+
+        if (files != null && !files.isEmpty()) {
+          addAttachments(taskDetail.getId(), files);
+        }
       }
 
       List<String> tags = taskDetail.getTags();

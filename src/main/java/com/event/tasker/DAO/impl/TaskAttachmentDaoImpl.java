@@ -1,6 +1,8 @@
 package com.event.tasker.DAO.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.dao.DataAccessException;
@@ -180,6 +182,35 @@ public class TaskAttachmentDaoImpl implements TaskAttachmentDao {
     } catch (DataAccessException e) {
       log.error(e.getMessage(), e);
       throw e;
+    }
+  }
+
+  @Override
+  public String softDeleteAttachmentsBy(ArrayList<String> ids) {
+    if (ids == null || ids.isEmpty()) {
+      log.warn("No attachment IDs provided for soft delete.");
+      return "No IDs provided";
+    }
+
+    String sql =
+        """
+        UPDATE task_attachments
+        SET isDeleted = 1
+        WHERE id = :id
+        """;
+
+    List<MapSqlParameterSource> params =
+        ids.stream().map(id -> new MapSqlParameterSource("id", id)).toList();
+
+    try {
+      int[] result = jdbcTemplate.batchUpdate(sql, params.toArray(new SqlParameterSource[0]));
+      int updatedCount = Arrays.stream(result).sum();
+
+      log.info("Soft-deleted {} attachments", updatedCount);
+      return "Soft-deleted " + updatedCount + " attachments";
+    } catch (DataAccessException ex) {
+      log.error("Error performing batch soft delete of attachments", ex);
+      throw ex; // or return a failure message if preferred
     }
   }
 }

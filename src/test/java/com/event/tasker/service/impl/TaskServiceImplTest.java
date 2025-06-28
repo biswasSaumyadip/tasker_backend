@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -19,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,7 +54,26 @@ class TaskServiceImplTest {
 
   @Mock private Logger logger;
 
+  @Mock MultipartFile file;
+
   @InjectMocks private TaskServiceImpl taskService;
+
+  TaskDetail taskDetail;
+  Task task;
+
+  @BeforeEach
+  void setUp() {
+    taskDetail =
+        TaskDetail.builder()
+            .id("task-123")
+            .title("Test Task")
+            .description("Test Description")
+            .priority(Task.Priority.HIGH)
+            .assignedTo("user-1")
+            .tags(new ArrayList<>(List.of("tag1", "tag2")))
+            .attachments(new ArrayList<>())
+            .build();
+  }
 
   @Test
   @DisplayName("Get tasks returns list of tasks successfully")
@@ -397,5 +419,55 @@ class TaskServiceImplTest {
 
     assertEquals(ex, thrown);
     verify(taskDao).softDeleteTaskById(taskId);
+  }
+
+  @Test
+  @DisplayName("updateTask: All components update successfully")
+  void updateTask_ShouldUpdateAllAndReturnSuccess() throws IOException {
+    // given
+    ArrayList<Attachment> existingAttachments =
+        new ArrayList<>(
+            List.of(
+                Attachment.builder().id("old-1").build(),
+                Attachment.builder().id("old-2").build()));
+    ArrayList<Attachment> newAttachments =
+        new ArrayList<>(List.of(Attachment.builder().id("old-1").build()));
+    taskDetail.setAttachments(newAttachments);
+
+    when(taskDao.updateTask(any(Task.class))).thenReturn(true);
+    when(fileStorageService.uploadFile(file)).thenReturn("uniqueFileName.txt");
+    when(fileStorageService.getFileMetadata(anyString()))
+        .thenReturn(Attachment.builder().id("old-1").build());
+    when(taskTagDao.getTaskTagsBy("task-123"))
+        .thenReturn(new ArrayList<>(List.of("tag1", "tagOld")));
+    when(taskAttachmentDao.getAttachmentsBy("task-123")).thenReturn(existingAttachments);
+    when(taskAttachmentDao.softDeleteAttachmentsBy(new ArrayList<>(List.of("old-2"))))
+        .thenReturn("Soft-deleted 1 attachments");
+
+    // when
+    TaskerResponse<String> response = taskService.updateTask(taskDetail, List.of(file));
+
+    // then
+    assertEquals("Task task-123 updated", response.getMessage());
+    verify(taskDao).updateTask(any(Task.class));
+    verify(taskAttachmentDao).softDeleteAttachmentsBy(new ArrayList<>(List.of("old-2")));
+    verify(taskTagDao).deleteTaskTags(any(), eq("task-123"));
+    verify(taskTagDao).createTaskTags(any());
+  }
+
+  @Test
+  @DisplayName("updateTask: should return failure message if task update fails")
+  void testUpdateTask_TaskUpdateFails() {
+    // Arrange
+    when(taskDao.updateTask(any(Task.class))).thenReturn(false);
+    when(taskTagDao.getTaskTagsBy("task-123"))
+        .thenReturn(new ArrayList<>(List.of("tag1", "tagOld")));
+
+    // Act
+    TaskerResponse<String> response = taskService.updateTask(taskDetail, List.of());
+
+    // Assert
+    assertEquals("Task update failed.", response.getMessage());
+    verify(taskDao).updateTask(any(Task.class));
   }
 }
