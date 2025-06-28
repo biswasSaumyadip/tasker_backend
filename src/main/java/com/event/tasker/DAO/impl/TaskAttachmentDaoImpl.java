@@ -130,4 +130,21 @@ public class TaskAttachmentDaoImpl implements TaskAttachmentDao {
       throw e;
     }
   }
+
+  @Override
+  public String softDeleteAttachment(String id) {
+    String sql =
+        """
+          UPDATE task_attachments
+          SET isDeleted = 1
+          WHERE id = :id
+          """;
+
+    try {
+      return jdbcTemplate.update(sql, new MapSqlParameterSource("id", id)) >= 1 ? id : null;
+    } catch (DataAccessException e) {
+      log.error("Error softDeleting attachment", e);
+      throw e;
+    }
+  }
 }

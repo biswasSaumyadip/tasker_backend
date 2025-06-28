@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -176,21 +177,40 @@ public class TaskServiceImpl implements TaskService {
       if (attachments != null && !attachments.isEmpty()) {
         log.info("Updating attachments for task {}", taskDetail.getId());
         // TODO: old files reference should be deleted in background
+
+        // TODO: Fetch the list of attachments from db
+        // TODO: check which attachments are not available in the request and based on that mark
+        // them as delete.
+        // TODO: delete the reset of the file
+        // TODO: manage the new files to be added
         addAttachments(taskDetail.getId(), files);
       }
 
       List<String> tags = taskDetail.getTags();
 
       if (tags != null && !tags.isEmpty()) {
-        // TODO 1: Fetch task tags by uuid - write a new method in the tagDao
-        // TODO 2: Filter based on what is available in the current and previous
-        // TODO 3: Soft delete the previous once which do not exist in the current - delete for tag
-        // dao
-        // TODO 4: Insert the new tags
-        //                ArrayList<TaskTag> existingTaskTags = taskTagDao.;
+        List<String> currentTags = taskTagDao.getTaskTagsBy(taskDetail.getId());
+
+        if (currentTags != null && !currentTags.isEmpty()) {
+          ArrayList<String> deletedTags =
+              currentTags.stream()
+                  .filter(tag -> !tags.contains(tag))
+                  .collect(Collectors.toCollection(ArrayList::new));
+
+          ArrayList<TaskTag> taskTags =
+              deletedTags.stream()
+                  .map((tag) -> TaskTag.builder().taskId("").name(tag).build())
+                  .collect(Collectors.toCollection(ArrayList::new));
+
+          taskTagDao.deleteTaskTags(taskTags, task.getId());
+          tags.removeAll(currentTags);
+        }
+
+        taskTagDao.createTaskTags(
+            tags.stream()
+                .map((tag) -> TaskTag.builder().taskId("").name(tag).build())
+                .collect(Collectors.toCollection(ArrayList::new)));
         log.info("Updating tags for task {}", taskDetail.getId());
-        ArrayList<TaskTag> taskTags = new ArrayList<>();
-        for (String tag : tags) {}
       }
 
       if (taskDao.updateTask(task)) {

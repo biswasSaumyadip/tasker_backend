@@ -339,4 +339,29 @@ public class TaskAttachmentDoaImplTest {
     // when / then
     assertThrows(DataAccessException.class, () -> taskDao.deleteAttachment(id, null));
   }
+
+  @Test
+  @DisplayName("softDeleteAttachment: Should successfully delete and return ID")
+  void testSoftDeleteAttachment_ShouldSuccessfullyDeleteAndReturnTheID() {
+    String attachmentId = "att-456";
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class))).thenReturn(1);
+
+    String id = taskDao.softDeleteAttachment(attachmentId);
+
+    assertEquals(attachmentId, id);
+    verify(jdbcTemplate).update(anyString(), any(MapSqlParameterSource.class));
+  }
+
+  @Test
+  @DisplayName("softDeleteAttachment: Should throw DataAccessException")
+  void testSoftDeleteAttachment_ShouldThrowDataAccessException() {
+    String id = "att-456";
+
+    when(jdbcTemplate.update(anyString(), any(MapSqlParameterSource.class)))
+        .thenThrow(new DataAccessResourceFailureException("DB error"));
+
+    assertThrows(DataAccessException.class, () -> taskDao.softDeleteAttachment(id));
+
+    verify(jdbcTemplate).update(anyString(), any(MapSqlParameterSource.class));
+  }
 }

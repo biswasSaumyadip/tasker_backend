@@ -12,4 +12,6 @@ public interface TaskAttachmentDao {
   String deleteAttachment(String id, String taskId);
 
   String updateAttachment(Attachment attachment);
+
+  String softDeleteAttachment(String id);
 }
