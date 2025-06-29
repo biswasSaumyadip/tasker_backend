@@ -24,7 +24,7 @@ public class TaskRowMapper implements RowMapper<Task> {
         .title(rs.getString("title"))
         .description(rs.getString("description"))
         .completed(rs.getBoolean("completed"))
-        .priority(Task.Priority.valueOf(rs.getString("priority")))
+        .priority(Task.Priority.fromCode(rs.getInt("priority")))
         .assignedTo(rs.getString("assignedTo"))
         .profilePicture(rs.getString("profilePicture"))
         .createdAt(rs.getTimestamp("createdAt").toInstant())

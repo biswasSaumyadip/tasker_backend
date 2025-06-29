@@ -39,6 +39,7 @@ public class TaskDaoImpl implements TaskDao {
             FROM tasks t
             LEFT JOIN task_tags tt ON t.id = tt.task_id
             LEFT JOIN users u ON u.user_id = t.assigned_to
+            LEFT JOIN priority pr ON pr.id = t.priority
             """;
 
   private static final String TASK_GROUP_BY =
@@ -66,7 +67,7 @@ public class TaskDaoImpl implements TaskDao {
               .addValue("title", task.getTitle())
               .addValue("description", task.getDescription())
               .addValue("completed", task.isCompleted())
-              .addValue("priority", task.getPriority().name())
+              .addValue("priority", task.getPriority().ordinal())
               .addValue("dueDate", task.getDueDate())
               .addValue("assignedTo", task.getAssignedTo())
               .addValue("parentId", task.getParentId());
@@ -140,12 +141,14 @@ public class TaskDaoImpl implements TaskDao {
                          t.created_at                                             AS createdAt,
                          t.due_date                                               AS dueDate,
                          u.profile_picture_url                                    AS profilePicture,
+                         CONCAT(u.first_name, ' ', u.last_name)                   AS assignedToName,
                          parent_id                                                AS parentID,
                          GROUP_CONCAT(tt.tag)                                     AS tags,
                          MAX(COALESCE(attachments_agg.attachments, JSON_ARRAY())) AS attachments
                   FROM tasks t
                            LEFT JOIN task_tags tt ON t.id = tt.task_id
                            LEFT JOIN users u ON u.user_id = t.assigned_to
+                           LEFT JOIN  priority pr ON pr.id = t.priority
                            LEFT JOIN
                        (SELECT ta.taskId,
                                JSON_ARRAYAGG(
@@ -189,7 +192,7 @@ public class TaskDaoImpl implements TaskDao {
 
     try {
       MapSqlParameterSource parameters = new MapSqlParameterSource();
-      parameters.addValue("priority", task.getPriority());
+      parameters.addValue("priority", task.getPriority().ordinal());
       parameters.addValue("completed", task.isCompleted());
       parameters.addValue("description", task.getDescription());
       parameters.addValue("title", task.getTitle());

@@ -22,6 +22,7 @@ public class TaskDetail {
 
   private Instant dueDate;
   private List<String> tags;
+  private String assignedToName;
 
   @Builder.Default private List<Attachment> attachments = new ArrayList<>();
   private List<String> teamMembers;
